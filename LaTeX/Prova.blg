@@ -1,0 +1,15 @@
+[0] Config.pm:328> INFO - This is Biber 2.21
+[1] Config.pm:331> INFO - Logfile is 'Prova.blg'
+[224] biber-MSWIN64:342> INFO - === 
+[289] Biber.pm:421> INFO - Reading 'Prova.bcf'
+[556] Biber.pm:1002> INFO - Found 1 citekeys in bib section 0
+[585] Biber.pm:4487> INFO - Processing section 0
+[605] Biber.pm:4678> INFO - Looking for bibtex file 'biblio.bib' for section 0
+[702] bibtex.pm:1713> INFO - LaTeX decoding ...
+[721] bibtex.pm:1519> INFO - Found BibTeX data source 'biblio.bib'
+[795] UCollate.pm:68> INFO - Overriding locale 'it-IT' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[795] UCollate.pm:68> INFO - Overriding locale 'it-IT' defaults 'variable = shifted' with 'variable = non-ignorable'
+[795] Biber.pm:4307> INFO - Sorting list 'none/global//global/global/global' of type 'entry' with template 'none' and locale 'it-IT'
+[795] Biber.pm:4313> INFO - No sort tailoring available for locale 'it-IT'
+[797] bbl.pm:676> INFO - Writing 'Prova.bbl' with encoding 'UTF-8'
+[799] bbl.pm:779> INFO - Output to Prova.bbl

@@ -1,0 +1,392 @@
+\glsdefs@newdocentry{acs}%
+{%
+name={\acronymfont {\glsentryshort {acs}}},%
+sort={ACS},%
+type={acronym},%
+first={ACS},%
+firstplural={ACSs},%
+text={ACS},%
+plural={ACSs},%
+description={Anti-Coincidence Scintillator},%
+descriptionplural={Anti-Coincidence Scintillator},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Anti-Coincidence Scintillator},%
+longplural={Anti-Coincidence Scintillators},%
+short={ACS},%
+shortplural={ACSs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{cl}%
+{%
+name={\acronymfont {\glsentryshort {cl}}},%
+sort={CL},%
+type={acronym},%
+first={CL},%
+firstplural={CLs},%
+text={CL},%
+plural={CLs},%
+description={GAGG scintillating calorimeter},%
+descriptionplural={GAGG scintillating calorimeter},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={GAGG scintillating calorimeter},%
+longplural={GAGG scintillating calorimeters},%
+short={CL},%
+shortplural={CLs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{esa}%
+{%
+name={\acronymfont {\glsentryshort {esa}}},%
+sort={ESA},%
+type={acronym},%
+first={ESA},%
+firstplural={ESAs},%
+text={ESA},%
+plural={ESAs},%
+description={European Space Agency},%
+descriptionplural={European Space Agency},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={European Space Agency},%
+longplural={European Space Agencys},%
+short={ESA},%
+shortplural={ESAs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{fbk}%
+{%
+name={\acronymfont {\glsentryshort {fbk}}},%
+sort={FBK},%
+type={acronym},%
+first={FBK},%
+firstplural={FBKs},%
+text={FBK},%
+plural={FBKs},%
+description={Fondazione Bruno Kessler},%
+descriptionplural={Fondazione Bruno Kessler},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Fondazione Bruno Kessler},%
+longplural={Fondazione Bruno Kesslers},%
+short={FBK},%
+shortplural={FBKs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{leo}%
+{%
+name={\acronymfont {\glsentryshort {leo}}},%
+sort={LEO},%
+type={acronym},%
+first={LEO},%
+firstplural={LEOs},%
+text={LEO},%
+plural={LEOs},%
+description={Low Earth Orbit},%
+descriptionplural={Low Earth Orbit},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Low Earth Orbit},%
+longplural={Low Earth Orbits},%
+short={LEO},%
+shortplural={LEOs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{gagg}%
+{%
+name={\acronymfont {\glsentryshort {gagg}}},%
+sort={GAGG},%
+type={acronym},%
+first={GAGG},%
+firstplural={GAGGs},%
+text={GAGG},%
+plural={GAGGs},%
+description={Gadolinium Aluminum Gallium Garnet},%
+descriptionplural={Gadolinium Aluminum Gallium Garnet},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Gadolinium Aluminum Gallium Garnet},%
+longplural={Gadolinium Aluminum Gallium Garnets},%
+short={GAGG},%
+shortplural={GAGGs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{gbm}%
+{%
+name={\acronymfont {\glsentryshort {gbm}}},%
+sort={GBM},%
+type={acronym},%
+first={GBM},%
+firstplural={GBMs},%
+text={GBM},%
+plural={GBMs},%
+description={Gamma-ray Burst Monitors},%
+descriptionplural={Gamma-ray Burst Monitors},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Gamma-ray Burst Monitors},%
+longplural={Gamma-ray Burst Monitorss},%
+short={GBM},%
+shortplural={GBMs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{gbw}%
+{%
+name={\acronymfont {\glsentryshort {gbw}}},%
+sort={GBW},%
+type={acronym},%
+first={GBW},%
+firstplural={GBWs},%
+text={GBW},%
+plural={GBWs},%
+description={Gain Band-Width},%
+descriptionplural={Gain Band-Width},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Gain Band-Width},%
+longplural={Gain Band-Widths},%
+short={GBW},%
+shortplural={GBWs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{pid}%
+{%
+name={\acronymfont {\glsentryshort {pid}}},%
+sort={PID},%
+type={acronym},%
+first={PID},%
+firstplural={PIDs},%
+text={PID},%
+plural={PIDs},%
+description={Particle Identification},%
+descriptionplural={Particle Identification},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Particle Identification},%
+longplural={Particle Identifications},%
+short={PID},%
+shortplural={PIDs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{sipm}%
+{%
+name={\acronymfont {\glsentryshort {sipm}}},%
+sort={SiPM},%
+type={acronym},%
+first={SiPM},%
+firstplural={SiPMs},%
+text={SiPM},%
+plural={SiPMs},%
+description={Silicon Photomultiplier},%
+descriptionplural={Silicon Photomultiplier},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Silicon Photomultiplier},%
+longplural={Silicon Photomultipliers},%
+short={SiPM},%
+shortplural={SiPMs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{sd}%
+{%
+name={\acronymfont {\glsentryshort {sd}}},%
+sort={SD},%
+type={acronym},%
+first={SD},%
+firstplural={SDs},%
+text={SD},%
+plural={SDs},%
+description={Silicon Detector},%
+descriptionplural={Silicon Detector},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Silicon Detector},%
+longplural={Silicon Detectors},%
+short={SD},%
+shortplural={SDs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{snr}%
+{%
+name={\acronymfont {\glsentryshort {snr}}},%
+sort={SNR},%
+type={acronym},%
+first={SNR},%
+firstplural={SNRs},%
+text={SNR},%
+plural={SNRs},%
+description={Signal-to-Noise-Ratio},%
+descriptionplural={Signal-to-Noise-Ratio},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Signal-to-Noise-Ratio},%
+longplural={Signal-to-Noise-Ratios},%
+short={SNR},%
+shortplural={SNRs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{spad}%
+{%
+name={\acronymfont {\glsentryshort {spad}}},%
+sort={SPAD},%
+type={acronym},%
+first={SPAD},%
+firstplural={SPADs},%
+text={SPAD},%
+plural={SPADs},%
+description={Single Photon Avalanche Diodes},%
+descriptionplural={Single Photon Avalanche Diodes},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Single Photon Avalanche Diodes},%
+longplural={Single Photon Avalanche Diodess},%
+short={SPAD},%
+shortplural={SPADs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{tia}%
+{%
+name={\acronymfont {\glsentryshort {tia}}},%
+sort={TIA},%
+type={acronym},%
+first={TIA},%
+firstplural={TIAs},%
+text={TIA},%
+plural={TIAs},%
+description={Transimpedence Amplifier},%
+descriptionplural={Transimpedence Amplifier},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Transimpedence Amplifier},%
+longplural={Transimpedence Amplifiers},%
+short={TIA},%
+shortplural={TIAs},%
+counter={page},%
+parent={},%
+%
+}%
+

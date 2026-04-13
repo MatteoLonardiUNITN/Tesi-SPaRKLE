@@ -1,0 +1,145 @@
+\subsection{Lettura in modalità tensione (Voltage Mode)}
+	Per ottenere elevate prestazioni temporali, il preamplificatore deve garantire un tempo di salita rapido, rendendo necessaria un'ampia larghezza di banda. Quando si utilizza un amplificatore di tensione, la resistenza d'ingresso ($R_{IN}$) non può assumere valori elevati; di conseguenza, l'amplificatore deve fornire un guadagno sufficiente per garantire un'ampiezza del segnale di uscita adeguata alle elaborazioni successive, come l'integrazione per la misura dell'energia o la discriminazione per la misura del tempo.
+
+	Tuttavia, l'approccio in tensione presenta alcune limitazioni critiche:
+	\begin{itemize}
+		\item \textbf{Consumo energetico:} ottenere un elevato prodotto guadagno-banda richiede un consumo di potenza significativo, risultando inefficiente per applicazioni con molti canali di lettura o bassi livelli di luce.
+		\item \textbf{Degradazione del rumore:} il rumore di tensione equivalente in ingresso dell'amplificatore si somma direttamente alla tensione ai capi di $R_{IN}$, peggiorando il rapporto segnale-rumore (\gls{snr}) e limitando la risoluzione temporale.
+	\end{itemize}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.99\textwidth]{voltagemodecircuit}
+		\caption{Circuito di elaborazione del segnale in modalità di lettura della tensione}
+		\label{fig:voltagemodecircuit}
+	\end{figure}
+	
+	La valutazione sperimentale e le simulazioni ai piccoli segnali hanno evidenziato limitazioni intrinseche della topologia \textit{voltage-mode} nell'interfacciamento di \gls{sipm} di grande area.
+	
+	Il limite principale risiede nel \textbf{prodotto guadagno-banda} (\gls{gbw}) dell'amplificatore operazionale, che vincola fortemente la larghezza di banda a ciclo chiuso. Questo fenomeno sopprime le componenti ad alta frequenza dell'impulso a valanga del \gls{sipm}, producendo un segnale di uscita marcatamente più lento.
+	\newpage
+	L'analisi evidenzia un compromesso critico legato alla resistenza di \textit{shunt} (Nello schema di \textbf{Fig:\ref{fig:voltagemodecircuit}} corrisponde alla RL di $150\Omega$) utilizzata per la conversione corrente-tensione:
+	\begin{itemize}
+		\item Una resistenza di \textit{shunt} ridotta velocizzerebbe il segnale, rendendo la caduta di tensione meno sensibile ai transienti rapidi.
+		\item Tuttavia, la riduzione della resistenza diminuisce proporzionalmente l'ampiezza in uscita, costringendo lo stadio di amplificazione successivo a fornire un guadagno maggiore.
+		\item L'aumento del guadagno esaspera ulteriormente il limite del \gls{gbw}, riducendo la banda effettiva e aumentando la distorsione dell'impulso rapido del sensore.
+	\end{itemize}
+	
+	In conclusione, tali vincoli impediscono alla configurazione in tensione di riprodurre fedelmente i segnali veloci tipici dei \gls{sipm}.
+		\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.99\textwidth]{voltagemodetransient}
+		\caption{Simulazione su LTspice del transitorio del \gls{sipm} in moodalità di lettura della tensione. La traccia blu mostra la corrente emessa dal sensore, la traccia rossa mostra l'uscita del circuito di condizionamento}
+		\label{fig:voltagemodetransient}
+	\end{figure}
+	
+	{\huge RL DA PROBLEMI}
+	\newpage
+	\subsubsection{Lettura in modalità corrente (Current Mode)}
+	Il circuito di lettura per il \gls{sipm} in modalità corrente rispetto alla modalità in tensione ha numerosi vantaggi:
+	\begin{itemize}
+		\item Preserva l'integrità del segnale: Il valore molto basso di $R_{IN}$ assicura una trasmissione del segnale minimizzando la distorsione
+		\item Tempo di salita ridotto: gli amplificatori in corrente, hanno una banda passante più alta, di conseguenza una risposta più veloce
+		\item Contributo del rumore ridotto: meno rumore dell'amplificatore a gate comune in corrente rispetto al source comune in tensione
+	\end{itemize}
+	
+	La lettura in corrente può facilmente essere implementata con un \gls{tia}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.7\textwidth]{tia}
+		\caption{Amplificatore in corrente con \gls{tia}}
+		\label{fig:tia}
+	\end{figure}
+	
+	L'erspressione di $Vout$ è:
+	\begin{equation}
+		\centering
+		V_{out} = -RF \cdot i_s
+	\end{equation}
+	
+	Il circuito di condizionamento per la lettura in corrente è composto da due stadi, il primo è il \gls{tia}, per la conversione corrente-tensione tramite un integratore, con resistenza di retroazione per migliorare la stabilità; il secondo stadio un amplificatore differenziale, per regolare il fondo scala e l'amplificazione adeguata per una lettura al massimo delle potenzialità del HW
+	
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=1       \textwidth]{currentmodecircuit}
+		\caption{Circuito di condizionamento per la lettura della corrente}
+		\label{fig:currentmodecircuit}
+	\end{figure}
+	\newpage
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	\section{Simulazioni}
+	\subsection{Circuito di condizionamento del SiPM controllato in Tensione}
+	
+	Come primo punto sono andato a ricreare il circuito equivalente dello SiPM di \textbf{Figura} \ref{fig:spadeq}, per poi andare a costruire anche il primo circuito di controllo, quello controllato in tensione \textbf{Figura} \ref{fig:voltagemodecircuit}, per andare a verificare il match con i plot di Tessaro. Il circuito era già dimensionato, ma nella  \textbf{Figura} \ref{fig:spadeq} non si vede la configurazione del generatore di corrente. La defizione fisica di corrente è:
+	\begin{equation}
+		\Delta I = \frac{Q}{\Delta t}
+	\end{equation} 
+	
+	Supponendo la durata dell'impulso $\Delta t = 100$ ps, per il calcolo della corrente devo prima calcolare la carica $Q$, data dalla formula:
+	\begin{equation}
+		Q = C \cdot \Delta V
+	\end{equation}
+	
+	Nel nostro caso, la capacità è la somma dei condensatori $C_q$ e $C_d$, mentre la differenza di potenziale si calcola come differenza tra la tensione di bias ($V_{bias} = 32$ V) e la tensione di Breakdown ($V_{BR}$), ottenuta dalla caratteristica del SiPM polarizzato inversamente. Nel nostro caso, abbiamo una tensione di Breakdown pari a $-27$ V. 
+	
+	Quindi il calcolo della carica è:
+	\begin{align}
+		Q &= (C_q + C_d) \cdot (V_{bias} - \abs{V_{BR}}) \\
+		Q &= (397 \cdot 10^{-15} + 18.1 \cdot 10^{-15}) \cdot (32 - \abs{-27}) \\
+		Q &= 2.08 \cdot 10^{-12} \, \text{C} = 2.08 \, \text{pC}
+	\end{align}
+	
+	Ora abbiamo tutti i valori per calcolare la corrente del generatore nel circuito equivalente:
+	\begin{equation}
+		\Delta I = \frac{Q}{\Delta t} = \frac{2.08 \cdot 10^{-12}}{100 \cdot 10^{-12}} = 20.8 \, \text{mA}
+	\end{equation}
+	
+	Dalle simulazioni dei Tessaro del circuito di controllo in tensione, si evince l'utilizzo di un altro tipo di generatore con altri parametri e tipologia di onda. Per le mie simulazioni ho utilizzato nel SiPM equivalente un generatore di corrente configurato con: PULSE(0 20.8m 100n 1p 1p 100p 50u), ovvero di un impulso di corrente di 20.8mA e una durata di 100ps.
+	Con questa configurazione simulo il circuito di controllo in tensione di \textbf{Figura} \ref{fig:voltagemodecircuit}:
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=1       \textwidth]{mio_plot_controllo_tensione}
+		\caption{Simulazione su LT spice del circuito di condizioamento del SiPM controllato in tensione da un impulso di corrente (traccia blu) e l'uscita in tensione del circuito (traccia rossa)}
+		\label{fig:mio_plot_controllo_tensione}
+	\end{figure}
+	
+	\subsection{Circuito di condizionamento del SiPM controllato in Corrente}
+	
+	Come spiegato nella tesi di Tessaro, un controllo in corrente offre più prestazioni ma con il problema del sottosmorzamento e dell'oscillazione. Riprendendo in mano le simulazioni del controllo in corrente, con un SiPM 4x4, quindi con i parametri 16 volte maggiori rispetto al SiPM del controllo in tensione, ho notato anche io delle oscillazioni. In questo caso ho dovuto modificare tutti valori dei parametri del SiPM equivalente,sia dei componenti che dell'intensità di corrente, ovvero moltiplicarli tutti per 16
+	\begin{align}
+		N &= 40000 \cdot 16 = 640000\\
+		R_{EQ} &= 1.13 \cdot 10^{6} \cdot 16 = 18.08\cdot 10^{6} \Omega= 18.08M\Omega \\
+		C_q &= 397\cdot 10^{-15} \cdot 16 = 6.35\cdot 10^{-12} F = 6.35pF\\
+		C_d &= 18.1\cdot 10^{-15} \cdot 16 = 289.6\cdot 10^{-15} F = 289.6fF\\
+		C_g &= 3.64 \cdot 10^{-9} \cdot 16 = 54.24\cdot 10^{-9} = 58.24 nF\\
+		I_{av} x&= 20.8 \cdot 10^{-3} \cdot 16 = 332 \cdot 10^{-3}A = 332mA
+	\end{align}
+	
+	Con questi parametri, si ha un match esatto con le forme d'onda presentate da Tessaro {\huge METTI LA FOTO}
+	
+		\begin{figure}[H]
+		\centering
+		\includegraphics[width=1       \textwidth]{mio_plot_controllo_corrente}
+		\caption{Simulazione su LT spice del circuito di condizioamento del SiPM controllato in corrente dato con un impulso di corrente (traccia blu) e l'uscita in tensione del circuito integratore per la conversione corrente-tensione(traccia rossa)}
+		\label{fig:mio_plot_controllo_corrente}
+	\end{figure}

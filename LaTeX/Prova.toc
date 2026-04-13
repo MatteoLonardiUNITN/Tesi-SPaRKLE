@@ -1,0 +1,11 @@
+\babel@toc {italian}{}\relax 
+\babel@toc {italian}{}\relax 
+\contentsline {section}{Abstract}{12}{section*.6}%
+\contentsline {section}{\numberline {1}Introduzione}{13}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Space Rider e SPaRKLE}{13}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Sensori e Circuiti di Condizionamento}{15}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}Panoramica del rilevatore}{16}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}Fotomoltiplicatori al Silicio (\gls {sipm})}{18}{subsection.1.4}%
+\contentsline {section}{\numberline {2}Elettronica di lettura per \gls {sipm}}{20}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Voltage Mode}{20}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Controllo in Corrente}{24}{subsection.2.2}%

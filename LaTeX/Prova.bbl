@@ -1,0 +1,47 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global/global}
+    \entry{satnews_terran_2023}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=ff96e0c1432cd11e792e667946a35ab8}{%
+           family={{SatNews}},
+           familyi={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{ff96e0c1432cd11e792e667946a35ab8}
+      \strng{fullhash}{ff96e0c1432cd11e792e667946a35ab8}
+      \strng{fullhashraw}{ff96e0c1432cd11e792e667946a35ab8}
+      \strng{bibnamehash}{ff96e0c1432cd11e792e667946a35ab8}
+      \strng{authorbibnamehash}{ff96e0c1432cd11e792e667946a35ab8}
+      \strng{authornamehash}{ff96e0c1432cd11e792e667946a35ab8}
+      \strng{authorfullhash}{ff96e0c1432cd11e792e667946a35ab8}
+      \strng{authorfullhashraw}{ff96e0c1432cd11e792e667946a35ab8}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://news.satnews.com/2023/10/25/terran-orbital-awarded-million-contract-by-esa/}}
+      \field{title}{{Terran Orbital Awarded \$4.7 Million Contract by ESA for Space Rider}}
+      \field{year}{2023}
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

@@ -15,4 +15,5 @@
 \contentsline {figure}{\numberline {2.3}{\ignorespaces Quattro diagrammi che mostrano diverse risposte del circuito allo stesso gradino in base alla presenza del \gls {sipm} con diverse tensioni di bias}}{22}{figure.caption.24}%
 \contentsline {figure}{\numberline {2.7}{\ignorespaces Amplificatore in corrente con \gls {tia}}}{24}{figure.caption.28}%
 \contentsline {figure}{\numberline {2.8}{\ignorespaces Circuito \gls {sipm} controllato in corrente}}{25}{figure.caption.29}%
-\contentsline {figure}{\numberline {2.9}{\ignorespaces Segnale in uscita al circuito \gls {sipm} controllato in corrente}}{26}{figure.caption.30}%
+\contentsline {figure}{\numberline {2.9}{\ignorespaces Confronto con lo stesso segnale uscente dalle 8 celle del \gls {sipm} tra circuito controllato in tensione (vout = linea rossa) e il circuito controllato in corrente (vout2 = blu)}}{26}{figure.caption.30}%
+\contentsline {figure}{\numberline {2.10}{\ignorespaces Confronto con lo stesso segnale uscente dalle 16 celle del \gls {sipm} tra circuito controllato in tensione (vout = linea rossa) e il circuito controllato in corrente (vout2 = blu)}}{26}{figure.caption.31}%

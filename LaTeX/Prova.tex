@@ -483,7 +483,7 @@ bindingoffset=5mm]{geometry} %tesi stampata
 		\label{fig:tia}
 	\end{figure}
 	
-	L'erspressione di $Vout$ è:
+	L'espressione di $Vout$ è:
 	\begin{equation}
 		\centering
 		V_{out} = -RF \cdot i_s
@@ -512,39 +512,51 @@ bindingoffset=5mm]{geometry} %tesi stampata
 	\end{equation}
 	
 	Infine gli amplificatori C1 e C2 sono dimensionati per evitare il sottosmorzamento del sistema cercando di avere i poli reali e più vicini possibile.
-	
-	Il segnale in uscita al circuito controllato in corrente, con il generatore di corrente del modello equivalente del SiPM impostato per dare un'ampiezza pari alle particelle alpha è la seguente:
-	
-	\begin{figure}[H]
-		\centering
-		\includegraphics[width=1\textwidth]{vout2_controllo_corrente.PNG}
-		\caption{Segnale in uscita al circuito \gls{sipm} controllato in corrente}
-		\label{fig:sipm}
-	\end{figure}
-	
-	Lo stesso impulso confrontato con il circuito controllato in tensione sia con 8 che 16 celle connese al \gls{sipm}
+
+	Lo stesso impulso uscente dal generatore di corrente del modello equivalente del SiPM, impostato per dare un'ampiezza pari a quella delle particelle alpha misurato in laboratorio, confrontato tra i due modelli circuitali sia con 8 che 16 celle connese al \gls{sipm}
 	
 	\begin{figure}[H]
 		\centering
-		% Sottofigura di SINISTRA
-		\begin{subfigure}[t]{0.48\textwidth} % Cambiato in [t]
-			\centering
-			\includegraphics[width=\linewidth]{confronto_currentmode_voltagemode_8_SiPM.png}
-			\caption{Confronto con lo stesso segnale uscente dalle 8 celle del \gls{sipm} tra circuito controllato in tensione (vout = linea rossa) e il circuito controllato in corrente (vout2 = blu)}
-			\label{fig:confronto_currentmode_voltagemode_8_SiPM}
-		\end{subfigure}
-		\hfill
-		% Sottofigura di DESTRA
-		\begin{subfigure}[t]{0.48\textwidth} % Cambiato in [t]
-			\centering
-			\includegraphics[width=\linewidth]{confronto_currentmode_voltagemode_16_SiPM.png}
-			\caption{Confronto con lo stesso segnale uscente dalle 16 celle del \gls{sipm} tra circuito controllato in tensione (vout = linea rossa) e il circuito controllato in corrente (vout2 = blu)}
-			\label{fig:confronto_currentmode_voltagemode_16_SiPM}
-		\end{subfigure}
+		\includegraphics[width=0.9\textwidth]{confronto_currentmode_voltagemode_8_SiPM.png}
+		\caption{Confronto con lo stesso segnale uscente dalle 8 celle del \gls{sipm} tra circuito controllato in tensione (vout = linea rossa) e il circuito controllato in corrente (vout2 = blu)}
+		\label{fig:confronto_currentmode_voltagemode_8_SiPM}
 	\end{figure}
 	
-	2.7us fall time controllo corrente contro i circa 40 del controllo in tensione
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.9\textwidth]{confronto_currentmode_voltagemode_16_SiPM.png}
+		\caption{Confronto con lo stesso segnale uscente dalle 16 celle del \gls{sipm} tra circuito controllato in tensione (vout = linea rossa) e il circuito controllato in corrente (vout2 = blu)}
+		\label{fig:confronto_currentmode_voltagemode_16_SiPM}
+	\end{figure}
 	
+	\begin{table}[H]
+		\centering
+		% Prima tabella (Sinistra)
+		\begin{minipage}{0.48\textwidth}
+			\centering
+			\begin{tabular}{l|c|r}
+				\hline
+				Tempo & 8 celle & 16 celle \\ \hline
+				Trise [$\mu s$]&  0.99551 & 1.07831 \\ 
+				Tfall [$\mu s$]&  25.22879 & 50.23618 \\ 
+			\end{tabular}
+			\caption{{\small Tempi Controllo Tensione}}
+		\end{minipage}
+		\hfill % Spazio elastico centrale
+		% Seconda tabella (Destra)
+		\begin{minipage}{0.48\textwidth}
+			\centering
+			\begin{tabular}{l|c|r}
+				\hline
+				Tempo & 8 celle & 16 celle \\ \hline
+				Trise [$\mu s$] &  0.51812 & 0.71022 \\ 
+				Tfall [$\mu s$]&  2.74100 & 2.16989 \\ 
+			\end{tabular}
+			\caption{{\small Tempi Controllo Corrente}}
+		\end{minipage}
+	\end{table}
+	
+
 	%bibliografia 
 	\newpage
 	\printbibliography

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.3.21)  10 APR 2026 18:08
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.3.21)  13 APR 2026 07:56
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1089,29 +1089,29 @@ nitn.png>] [2] [3] [4] (Prova.toc)
  [9] [10
 
 ] (Prova.acr) [11] [12]
-<Immagini/spaceriderlogo.png, id=186, 462.528pt x 462.528pt>
+<Immagini/spaceriderlogo.png, id=196, 462.528pt x 462.528pt>
 File: Immagini/spaceriderlogo.png Graphic file (type png)
 <use Immagini/spaceriderlogo.png>
 Package pdftex.def Info: Immagini/spaceriderlogo.png  used on input line 152.
 (pdftex.def)             Requested size: 93.89265pt x 93.88724pt.
-<Immagini/spacerider.jpg, id=187, 1011.78pt x 449.68pt>
+<Immagini/spacerider.jpg, id=197, 1011.78pt x 449.68pt>
 File: Immagini/spacerider.jpg Graphic file (type jpg)
 <use Immagini/spacerider.jpg>
 Package pdftex.def Info: Immagini/spacerider.jpg  used on input line 160.
 (pdftex.def)             Requested size: 375.57784pt x 166.92792pt.
  [13 <./Immagini/spaceriderlogo.png> <./Immagini/spacerider.jpg>]
-<Immagini/sparklelogo.png, id=197, 225.84375pt x 225.84375pt>
+<Immagini/sparklelogo.png, id=207, 225.84375pt x 225.84375pt>
 File: Immagini/sparklelogo.png Graphic file (type png)
 <use Immagini/sparklelogo.png>
 Package pdftex.def Info: Immagini/sparklelogo.png  used on input line 166.
 (pdftex.def)             Requested size: 93.89265pt x 93.89226pt.
-<Immagini/sparklecube.jpg, id=200, 414.54875pt x 523.9575pt>
+<Immagini/sparklecube.jpg, id=210, 414.54875pt x 523.9575pt>
 File: Immagini/sparklecube.jpg Graphic file (type jpg)
 <use Immagini/sparklecube.jpg>
 Package pdftex.def Info: Immagini/sparklecube.jpg  used on input line 177.
 (pdftex.def)             Requested size: 234.73524pt x 296.68413pt.
  [14 <./Immagini/sparklelogo.png> <./Immagini/sparklecube.jpg>]
-<Immagini/deltaee.png, id=211, 1581.91pt x 976.64874pt>
+<Immagini/deltaee.png, id=221, 1581.91pt x 976.64874pt>
 File: Immagini/deltaee.png Graphic file (type png)
 <use Immagini/deltaee.png>
 Package pdftex.def Info: Immagini/deltaee.png  used on input line 196.
@@ -1123,17 +1123,17 @@ l-la-tor (ACS)[][]): ACS[]-T(Top) e ACS[]-
  []
 
 [16]
-<Immagini/detector1.jpg, id=229, 664.4825pt x 385.44pt>
+<Immagini/detector1.jpg, id=239, 664.4825pt x 385.44pt>
 File: Immagini/detector1.jpg Graphic file (type jpg)
 <use Immagini/detector1.jpg>
 Package pdftex.def Info: Immagini/detector1.jpg  used on input line 227.
 (pdftex.def)             Requested size: 352.10287pt x 204.24106pt.
-<Immagini/detector2.jpg, id=230, 643.40375pt x 361.35pt>
+<Immagini/detector2.jpg, id=240, 643.40375pt x 361.35pt>
 File: Immagini/detector2.jpg Graphic file (type jpg)
 <use Immagini/detector2.jpg>
 Package pdftex.def Info: Immagini/detector2.jpg  used on input line 233.
 (pdftex.def)             Requested size: 352.10287pt x 197.75615pt.
-<Immagini/detector3.jpg, id=231, 643.40375pt x 361.35pt>
+<Immagini/detector3.jpg, id=241, 643.40375pt x 361.35pt>
 File: Immagini/detector3.jpg Graphic file (type jpg)
 <use Immagini/detector3.jpg>
 Package pdftex.def Info: Immagini/detector3.jpg  used on input line 239.
@@ -1144,7 +1144,7 @@ Package pdftex.def Info: Immagini/detector3.jpg  used on input line 239.
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `\gls' on input line 246.
 
-<Immagini/spad.png, id=239, 1902.10625pt x 717.68124pt>
+<Immagini/spad.png, id=249, 1902.10625pt x 717.68124pt>
 File: Immagini/spad.png Graphic file (type png)
 <use Immagini/spad.png>
 Package pdftex.def Info: Immagini/spad.png  used on input line 250.
@@ -1156,17 +1156,17 @@ See the caption package documentation for explanation.
 
 LaTeX Warning: Reference `fig:spad' on page 18 undefined on input line 255.
 
-<Immagini/spadeq.png, id=241, 1858.945pt x 945.5325pt>
+<Immagini/spadeq.png, id=251, 1858.945pt x 945.5325pt>
 File: Immagini/spadeq.png Graphic file (type png)
 <use Immagini/spadeq.png>
 Package pdftex.def Info: Immagini/spadeq.png  used on input line 258.
 (pdftex.def)             Requested size: 328.62791pt x 167.14427pt.
-<Immagini/sipm50u.png, id=244, 660.66824pt x 496.85625pt>
+<Immagini/sipm50u.png, id=254, 660.66824pt x 496.85625pt>
 File: Immagini/sipm50u.png Graphic file (type png)
 <use Immagini/sipm50u.png>
 Package pdftex.def Info: Immagini/sipm50u.png  used on input line 270.
 (pdftex.def)             Requested size: 225.34383pt x 169.46716pt.
-<Immagini/sipm2m.png, id=247, 663.6795pt x 497.4585pt>
+<Immagini/sipm2m.png, id=257, 663.6795pt x 497.4585pt>
 File: Immagini/sipm2m.png Graphic file (type png)
 <use Immagini/sipm2m.png>
 Package pdftex.def Info: Immagini/sipm2m.png  used on input line 278.
@@ -1175,17 +1175,17 @@ Package pdftex.def Info: Immagini/sipm2m.png  used on input line 278.
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [18 <./Immagini/spad.png (PNG copy)> <./Immagini/spadeq.png (PNG copy)>]
-<Immagini/30imp.png, id=254, 1219.55624pt x 995.72pt>
+<Immagini/30imp.png, id=264, 1219.55624pt x 995.72pt>
 File: Immagini/30imp.png Graphic file (type png)
 <use Immagini/30imp.png>
 Package pdftex.def Info: Immagini/30imp.png  used on input line 295.
 (pdftex.def)             Requested size: 225.34383pt x 183.97742pt.
-<Immagini/30impreg.png, id=255, 1199.48125pt x 996.72375pt>
+<Immagini/30impreg.png, id=265, 1199.48125pt x 996.72375pt>
 File: Immagini/30impreg.png Graphic file (type png)
 <use Immagini/30impreg.png>
 Package pdftex.def Info: Immagini/30impreg.png  used on input line 303.
 (pdftex.def)             Requested size: 225.34383pt x 187.25024pt.
-<Immagini/reg.png, id=258, 633.567pt x 513.117pt>
+<Immagini/reg.png, id=268, 633.567pt x 513.117pt>
 File: Immagini/reg.png Graphic file (type png)
 <use Immagini/reg.png>
 Package pdftex.def Info: Immagini/reg.png  used on input line 345.
@@ -1196,14 +1196,14 @@ G copy)> <./Immagini/30impreg.png (PNG copy)>]
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `\gls' on input line 350.
 
-<Immagini/scheda_voltagemode.png, id=275, 1028.04076pt x 484.81125pt>
+<Immagini/scheda_voltagemode.png, id=285, 1028.04076pt x 484.81125pt>
 File: Immagini/scheda_voltagemode.png Graphic file (type png)
 <use Immagini/scheda_voltagemode.png>
 Package pdftex.def Info: Immagini/scheda_voltagemode.png  used on input line 36
 7.
 (pdftex.def)             Requested size: 328.62791pt x 154.97261pt.
 [20 <./Immagini/reg.png>]
-<Immagini/voltagemodecircuit_mio.PNG, id=289, 1112.35574pt x 516.7305pt>
+<Immagini/voltagemodecircuit_mio.PNG, id=299, 1112.35574pt x 516.7305pt>
 File: Immagini/voltagemodecircuit_mio.PNG Graphic file (type png)
 <use Immagini/voltagemodecircuit_mio.PNG>
 Package pdftex.def Info: Immagini/voltagemodecircuit_mio.PNG  used on input lin
@@ -1211,43 +1211,43 @@ e 378.
 (pdftex.def)             Requested size: 469.4705pt x 218.08186pt.
  [21 <./Immagini/scheda_voltagemode.png> <./Immagini/voltagemodecircuit_mio.PNG
 >]
-<Immagini/impulsi_gradino_ext.jpg, id=304, 988.29225pt x 623.32875pt>
+<Immagini/impulsi_gradino_ext.jpg, id=314, 988.29225pt x 623.32875pt>
 File: Immagini/impulsi_gradino_ext.jpg Graphic file (type jpg)
 <use Immagini/impulsi_gradino_ext.jpg>
 Package pdftex.def Info: Immagini/impulsi_gradino_ext.jpg  used on input line 3
 97.
 (pdftex.def)             Requested size: 399.05278pt x 251.68587pt.
-<Immagini/impulsi_alpha.jpg, id=307, 1006.962pt x 646.21425pt>
+<Immagini/impulsi_alpha.jpg, id=317, 1006.962pt x 646.21425pt>
 File: Immagini/impulsi_alpha.jpg Graphic file (type jpg)
 <use Immagini/impulsi_alpha.jpg>
 Package pdftex.def Info: Immagini/impulsi_alpha.jpg  used on input line 406.
 (pdftex.def)             Requested size: 225.34383pt x 144.61295pt.
-<Immagini/impulsi_beta.jpg, id=308, 996.72375pt x 645.00975pt>
+<Immagini/impulsi_beta.jpg, id=318, 996.72375pt x 645.00975pt>
 File: Immagini/impulsi_beta.jpg Graphic file (type jpg)
 <use Immagini/impulsi_beta.jpg>
 Package pdftex.def Info: Immagini/impulsi_beta.jpg  used on input line 414.
 (pdftex.def)             Requested size: 225.34383pt x 145.8197pt.
  [22 <./Immagini/impulsi_gradino_ext.jpg> <./Immagini/impulsi_alpha.jpg> <./Imm
 agini/impulsi_beta.jpg>]
-<Immagini/confronto_no_sipm.png, id=317, 702.625pt x 501.875pt>
+<Immagini/confronto_no_sipm.png, id=327, 702.625pt x 501.875pt>
 File: Immagini/confronto_no_sipm.png Graphic file (type png)
 <use Immagini/confronto_no_sipm.png>
 Package pdftex.def Info: Immagini/confronto_no_sipm.png  used on input line 432
 .
 (pdftex.def)             Requested size: 225.34383pt x 160.95554pt.
-<Immagini/confronto_sipm_Vbias=0V.png, id=320, 702.625pt x 501.875pt>
+<Immagini/confronto_sipm_Vbias=0V.png, id=330, 702.625pt x 501.875pt>
 File: Immagini/confronto_sipm_Vbias=0V.png Graphic file (type png)
 <use Immagini/confronto_sipm_Vbias=0V.png>
 Package pdftex.def Info: Immagini/confronto_sipm_Vbias=0V.png  used on input li
 ne 440.
 (pdftex.def)             Requested size: 225.34383pt x 160.95554pt.
-<Immagini/confronto_sipm_Vbias=26V_5us.png, id=323, 702.625pt x 501.875pt>
+<Immagini/confronto_sipm_Vbias=26V_5us.png, id=333, 702.625pt x 501.875pt>
 File: Immagini/confronto_sipm_Vbias=26V_5us.png Graphic file (type png)
 <use Immagini/confronto_sipm_Vbias=26V_5us.png>
 Package pdftex.def Info: Immagini/confronto_sipm_Vbias=26V_5us.png  used on inp
 ut line 450.
 (pdftex.def)             Requested size: 225.34383pt x 160.95554pt.
-<Immagini/confronto_sipm_Vbias=26V_10us.png, id=326, 702.625pt x 501.875pt>
+<Immagini/confronto_sipm_Vbias=26V_10us.png, id=336, 702.625pt x 501.875pt>
 File: Immagini/confronto_sipm_Vbias=26V_10us.png Graphic file (type png)
 <use Immagini/confronto_sipm_Vbias=26V_10us.png>
 Package pdftex.def Info: Immagini/confronto_sipm_Vbias=26V_10us.png  used on in
@@ -1256,12 +1256,12 @@ put line 458.
  [23 <./Immagini/confronto_no_sipm.png> <./Immagini/confronto_sipm_Vbias=0V.png
 > <./Immagini/confronto_sipm_Vbias=26V_5us.png> <./Immagini/confronto_sipm_Vbia
 s=26V_10us.png>]
-<Immagini/tia.PNG, id=347, 902.1705pt x 500.46976pt>
+<Immagini/tia.PNG, id=357, 902.1705pt x 500.46976pt>
 File: Immagini/tia.PNG Graphic file (type png)
 <use Immagini/tia.PNG>
 Package pdftex.def Info: Immagini/tia.PNG  used on input line 481.
 (pdftex.def)             Requested size: 234.73524pt x 130.21834pt.
-<Immagini/mio_circuito_controllo_corrente.PNG, id=351, 1079.53313pt x 673.76718
+<Immagini/mio_circuito_controllo_corrente.PNG, id=361, 1079.53313pt x 673.76718
 pt>
 File: Immagini/mio_circuito_controllo_corrente.PNG Graphic file (type png)
 <use Immagini/mio_circuito_controllo_corrente.PNG>
@@ -1269,35 +1269,31 @@ Package pdftex.def Info: Immagini/mio_circuito_controllo_corrente.PNG  used on
 input line 502.
 (pdftex.def)             Requested size: 469.4705pt x 293.01439pt.
  [24 <./Immagini/tia.PNG>]
-<Immagini/vout2_controllo_corrente.PNG, id=363, 1444.64719pt x 669.2503pt>
-File: Immagini/vout2_controllo_corrente.PNG Graphic file (type png)
-<use Immagini/vout2_controllo_corrente.PNG>
-Package pdftex.def Info: Immagini/vout2_controllo_corrente.PNG  used on input l
-ine 520.
-(pdftex.def)             Requested size: 469.4705pt x 217.48334pt.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [25 <./Immagini/mio_circuito_controllo_corrente.PNG>]
-<Immagini/confronto_currentmode_voltagemode_8_SiPM.png, id=374, 1444.64719pt x 
-668.4975pt>
+<Immagini/confronto_currentmode_voltagemode_8_SiPM.png, id=374, 1053.9375pt x 7
+44.53156pt>
 File: Immagini/confronto_currentmode_voltagemode_8_SiPM.png Graphic file (type 
 png)
 <use Immagini/confronto_currentmode_voltagemode_8_SiPM.png>
 Package pdftex.def Info: Immagini/confronto_currentmode_voltagemode_8_SiPM.png 
- used on input line 532.
-(pdftex.def)             Requested size: 225.34383pt x 104.26886pt.
-<Immagini/confronto_currentmode_voltagemode_16_SiPM.png, id=377, 1444.64719pt x
- 668.4975pt>
+ used on input line 520.
+(pdftex.def)             Requested size: 422.52058pt x 298.47762pt.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [25 <./Immagini/mio_circuito_controllo_corrente.PNG>]
+<Immagini/confronto_currentmode_voltagemode_16_SiPM.png, id=384, 1054.6903pt x 
+752.8125pt>
 File: Immagini/confronto_currentmode_voltagemode_16_SiPM.png Graphic file (type
  png)
 <use Immagini/confronto_currentmode_voltagemode_16_SiPM.png>
 Package pdftex.def Info: Immagini/confronto_currentmode_voltagemode_16_SiPM.png
-  used on input line 540.
-(pdftex.def)             Requested size: 225.34383pt x 104.26886pt.
- [26 <./Immagini/vout2_controllo_corrente.PNG> <./Immagini/confronto_currentmod
-e_voltagemode_8_SiPM.png> <./Immagini/confronto_currentmode_voltagemode_16_SiPM
-.png>] [27] (Prova.aux)
+  used on input line 527.
+(pdftex.def)             Requested size: 422.52058pt x 301.57913pt.
+
+Underfull \vbox (badness 2753) has occurred while \output is active []
+
+ [26 <./Immagini/confronto_currentmode_voltagemode_8_SiPM.png> <./Immagini/conf
+ronto_currentmode_voltagemode_16_SiPM.png>] [27] [28] (Prova.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
@@ -1313,10 +1309,10 @@ Package logreq Info: Writing requests to 'Prova.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 28771 strings out of 467871
- 553462 string characters out of 5418376
- 1431602 words of memory out of 5000000
- 57247 multiletter control sequences out of 15000+600000
+ 28761 strings out of 467871
+ 553095 string characters out of 5418376
+ 1431089 words of memory out of 5000000
+ 57235 multiletter control sequences out of 15000+600000
  636280 words of font info for 69 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  75i,12n,79p,2490b,2549s stack positions out of 10000i,1000n,20000p,200000b,200000s
@@ -1339,9 +1335,9 @@ pe1/public/amsfonts/cm/cmsy10.pfb><C:/Users/matte/AppData/Local/Programs/MiKTeX
 /fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:/Users/matte/AppData/Local/Program
 s/MiKTeX/fonts/type1/public/amsfonts/cm/cmti12.pfb><C:/Users/matte/AppData/Loca
 l/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmtt12.pfb>
-Output written on Prova.pdf (27 pages, 5162713 bytes).
+Output written on Prova.pdf (28 pages, 5213497 bytes).
 PDF statistics:
- 490 PDF objects out of 1000 (max. 8388607)
- 91 named destinations out of 1000 (max. 500000)
- 223 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 499 PDF objects out of 1000 (max. 8388607)
+ 93 named destinations out of 1000 (max. 500000)
+ 218 words of extra memory for PDF output out of 10000 (max. 10000000)
 

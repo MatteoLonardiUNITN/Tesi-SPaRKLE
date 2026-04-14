@@ -1,0 +1,1964 @@
+---
+title: "Regressione Esponenziale Completa"
+author: "Matteo Lonardi"
+date: "2026-03-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(scales) # Per gestire meglio le scale dei grafici
+library(plotly)
+library(tidyverse)
+library(modelr)
+library(minpack.lm)
+```
+
+```{r}
+df1m = read.csv("tek0065ALL.csv", skip = 20) %>% 
+  mutate(TIME_us = TIME * 1e6) %>% 
+  select(!TIME)%>%
+  slice(seq(1, n(), by = 40))
+
+df1s = read.table("voltagemode_update_square_sipm_bias=0V.txt", header = T) %>% 
+  mutate(TIME_us = time * 1e6) %>% 
+  rename(CH2 = V.signal., CH1 = V.vout.) %>% 
+  select(!time) %>%
+  slice(seq(1, n(), by = 82))
+
+df2m = read.csv("tek0066ALL.csv", skip = 20) %>% mutate(TIME_us = TIME * 1e6) %>% select(!TIME)%>%
+  slice(seq(1, n(), by = 40))
+df2s = read.table("voltagemode_update_no_sipm_pulse.txt", header = T) %>% mutate(TIME_us = time * 1e6) %>% rename(CH2 = V.signal., CH1 = V.vout.) %>% select(!time)
+
+df3m = read.csv("tek0067ALL.csv", skip = 20) %>% mutate(TIME_us = TIME * 1e6) %>% select(!TIME)%>%
+  slice(seq(1, n(), by = 40))
+df3s = read.table("voltagemode_update_sipm_Vbias=26V_pulse_5u.txt", header = T) %>% mutate(TIME_us = time * 1e6) %>% rename(CH2 = V.signal., CH1 = V.vout.) %>% select(!time)
+
+df4m = read.csv("tek0069ALL.csv", skip = 20) %>% mutate(TIME_us = TIME * 1e6) %>% select(!TIME)%>%
+  slice(seq(1, n(), by = 40))
+df4s = read.table("voltagemode_update_sipm_Vbias=26V_pulse_10u.txt", header = T) %>% mutate(TIME_us = time * 1e6) %>% rename(CH2 = V.signal., CH1 = V.vout.) %>% select(!time)
+```
+
+Plot dell'uscita del circuito con SiPM connesso ma alimentato a 0V, con in ingresso un onda quadra di frequenza 1kHz. Per favorire la misura ho considerato solo il fronte di salita
+
+```{r}
+# =====================================================================
+# IMPOSTAZIONI DELLE SCALE 
+# =====================================================================
+
+# --- SCALA SINISTRA (Per Vout - Tracce 1 e 2) ---
+vout_inizio <- -0.5    # Valore minimo 
+vout_fine   <- 2.5     # Valore massimo 
+vout_step   <- 0.5     # Distanza tra una tacca e l'altra 
+
+# --- SCALA DESTRA (Per Vin - Tracce 1.1 e 2.1) ---
+vin_inizio  <- -0.02    # Valore minimo 
+vin_fine    <- 0.1     # Valore massimo 
+vin_step    <- 0.02     # Distanza tra una tacca e l'altra 
+
+# =====================================================================
+
+# Creazione del grafico nativo con doppio asse
+p1_plotly <- plot_ly(height = 500, width = 700) %>%
+  
+  # Traccia 1 (Vout misurazione -> Usa asse di default a Sinistra)
+  add_lines(data = df1m, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout misurazione', 
+            line = list(color = "#04e762", width = 1.5)) %>%
+            
+  # Traccia 1.1 (Vin misurazione -> ASSE DESTRO)
+  add_lines(data = df1m, 
+            x = ~TIME_us, 
+            y = ~CH2, 
+            name = 'Vin misurazione', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "#f5b700", width = 1.5)) %>%
+            
+  # Traccia 2 (Vout simulazione -> Usa asse di default a Sinistra)
+  add_lines(data = df1s, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout simulazione', 
+            line = list(color = "#dc0073", width = 1.5)) %>%
+            
+  # Traccia 2.1 (Vin simulazione -> ASSE DESTRO)
+  add_lines(data = df1s, 
+            x = ~TIME_us, 
+            y = ~CH2, 
+            name = 'Vin simulazione', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "#008bf8", width = 1.5)) %>%
+            
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = "<b>Confronto Reale e Simulazione SiPM connesso e Vbias = 0V</b><br>"
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    
+    # --- CONFIGURAZIONE ASSE SINISTRO (Vout) ---
+    yaxis = list(
+      title = "Ampiezza Vout [V]", 
+      gridcolor = "#f0f0f0",
+      range = c(vout_inizio, vout_fine), # Applica i tuoi limiti
+      dtick = vout_step                  # Applica il tuo step
+    ),
+    
+    # --- CONFIGURAZIONE ASSE DESTRO (Vin) ---
+    yaxis2 = list(
+      title = "Ampiezza Vin [V]",
+      overlaying = "y",                  # Fondamentale: sovrappone al primo asse
+      side = "right",                    # Fondamentale: lo mette a destra
+      range = c(vin_inizio, vin_fine),   # Applica i tuoi limiti
+      dtick = vin_step,                  # Applica il tuo step
+      showgrid = FALSE                   # Nasconde la griglia di Vin per non incrociarsi con quella di Vout
+    ),
+    
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    # Aggiunto un margine destro (r = 60) per non far tagliare i numeri del nuovo asse
+    margin = list(t = 80, b = 120, r = 60), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p1_plotly
+```
+
+Avvicino i segnali per una comparazione migliore
+
+```{r}
+df1m = df1m %>% mutate(TIME_us = TIME_us + 2.82, CH1 = CH1 - 0.02, CH2 = CH2-0.007)
+df1s = df1s%>% mutate(CH1 = CH1 - 0.168)
+```
+
+```{r}
+# =====================================================================
+# IMPOSTAZIONI DELLE SCALE 
+# =====================================================================
+
+# --- SCALA SINISTRA (Per Vout - Tracce 1 e 2) ---
+vout_inizio <- -0.5    # Valore minimo 
+vout_fine   <- 2.5     # Valore massimo 
+vout_step   <- 0.5     # Distanza tra una tacca e l'altra 
+
+# --- SCALA DESTRA (Per Vin - Tracce 1.1 e 2.1) ---
+vin_inizio  <- -0.02    # Valore minimo 
+vin_fine    <- 0.1     # Valore massimo 
+vin_step    <- 0.02     # Distanza tra una tacca e l'altra 
+
+# =====================================================================
+
+# Creazione del grafico nativo con doppio asse
+p1_plotly <- plot_ly(height = 500, width = 700) %>%
+  
+  # Traccia 1 (Vout misurazione -> Usa asse di default a Sinistra)
+  add_lines(data = df1m, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout misurazione', 
+            line = list(color = "#04e762", width = 1.5)) %>%
+            
+  # Traccia 1.1 (Vin misurazione -> ASSE DESTRO)
+  add_lines(data = df1m, 
+            x = ~TIME_us, 
+            y = ~CH2, 
+            name = 'Vin misurazione', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "#f5b700", width = 1.5)) %>%
+            
+  # Traccia 2 (Vout simulazione -> Usa asse di default a Sinistra)
+  add_lines(data = df1s, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout simulazione', 
+            line = list(color = "#dc0073", width = 1.5)) %>%
+            
+  # Traccia 2.1 (Vin simulazione -> ASSE DESTRO)
+  add_lines(data = df1s, 
+            x = ~TIME_us, 
+            y = ~CH2, 
+            name = 'Vin simulazione', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "#008bf8", width = 1.5)) %>%
+            
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = "<b>Confronto Reale e Simulazione SiPM connesso e Vbias = 0V</b><br>"
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    
+    # --- CONFIGURAZIONE ASSE SINISTRO (Vout) ---
+    yaxis = list(
+      title = "Ampiezza Vout [V]", 
+      gridcolor = "#f0f0f0",
+      range = c(vout_inizio, vout_fine), # Applica i tuoi limiti
+      dtick = vout_step                  # Applica il tuo step
+    ),
+    
+    # --- CONFIGURAZIONE ASSE DESTRO (Vin) ---
+    yaxis2 = list(
+      title = "Ampiezza Vin [V]",
+      overlaying = "y",                  # Fondamentale: sovrappone al primo asse
+      side = "right",                    # Fondamentale: lo mette a destra
+      range = c(vin_inizio, vin_fine),   # Applica i tuoi limiti
+      dtick = vin_step,                  # Applica il tuo step
+      showgrid = FALSE                   # Nasconde la griglia di Vin per non incrociarsi con quella di Vout
+    ),
+    
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    # Aggiunto un margine destro (r = 60) per non far tagliare i numeri del nuovo asse
+    margin = list(t = 80, b = 120, r = 60), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p1_plotly
+```
+
+Taglio da 1us in poi per la regressione esponenziale dei segnali in uscita
+
+```{r}
+df1m <- df1m %>%
+  filter(TIME_us >= 1) %>%
+  mutate(t_rel = TIME_us - 1)
+
+df1s = df1s %>% filter(TIME_us >= 1) %>%
+  mutate(t_rel = TIME_us - 1)
+```
+
+```{r}
+# =====================================================================
+# IMPOSTAZIONI DELLE SCALE 
+# =====================================================================
+
+# --- SCALA SINISTRA (Per Vout - Tracce 1 e 2) ---
+vout_inizio <- -0.5    # Valore minimo 
+vout_fine   <- 2.5     # Valore massimo 
+vout_step   <- 0.5     # Distanza tra una tacca e l'altra 
+
+# --- SCALA DESTRA (Per Vin - Tracce 1.1 e 2.1) ---
+vin_inizio  <- -0.02    # Valore minimo 
+vin_fine    <- 0.1     # Valore massimo 
+vin_step    <- 0.02     # Distanza tra una tacca e l'altra 
+
+# =====================================================================
+
+# Creazione del grafico nativo con doppio asse
+p1_plotly <- plot_ly(height = 500, width = 700) %>%
+  
+  # Traccia 1 (Vout misurazione -> Usa asse di default a Sinistra)
+  add_lines(data = df1m, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout misurazione', 
+            line = list(color = "#04e762", width = 1.5)) %>%
+            
+  # Traccia 2 (Vout simulazione -> Usa asse di default a Sinistra)
+  add_lines(data = df1s, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout simulazione', 
+            line = list(color = "#dc0073", width = 1.5)) %>%
+            
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = "<b>Confronto Reale e Simulazione SiPM connesso e Vbias = 0V</b><br>"
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    
+    # --- CONFIGURAZIONE ASSE SINISTRO (Vout) ---
+    yaxis = list(
+      title = "Ampiezza Vout [V]", 
+      gridcolor = "#f0f0f0",
+      range = c(vout_inizio, vout_fine), # Applica i tuoi limiti
+      dtick = vout_step                  # Applica il tuo step
+    ),
+    
+    
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    # Aggiunto un margine destro (r = 60) per non far tagliare i numeri del nuovo asse
+    margin = list(t = 80, b = 120, r = 60), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p1_plotly
+```
+
+```{r, results='hold'}
+# --- 1. FUNZIONE DI SUPPORTO PER INTERPOLAZIONE (SALITA) ---
+# Questa funzione trova il tempo esatto in cui il segnale in salita attraversa tau
+get_tau_time_rising <- function(t, y, tau_level) {
+  idx_max <- which.max(y)
+  
+  # Isola solo la parte della curva PRIMA del picco massimo (fase di salita)
+  rise_y <- y[1:idx_max]
+  rise_t <- t[1:idx_max]
+  
+  # Trova il primo punto in cui il segnale SALE sopra il livello tau
+  idx_above <- which(rise_y >= tau_level)[1]
+  
+  # Se non sale mai sopra tau (es. dati tagliati), restituisci NA
+  if(is.na(idx_above)) return(NA)
+  if(idx_above == 1) return(rise_t[1])
+  
+  # Interpolazione lineare tra il punto appena sotto la soglia e quello appena sopra
+  x1 <- rise_t[idx_above - 1]
+  x2 <- rise_t[idx_above]
+  y1 <- rise_y[idx_above - 1]
+  y2 <- rise_y[idx_above]
+  
+  tau_time <- x1 + (tau_level - y1) * (x2 - x1) / (y2 - y1)
+  return(tau_time)
+}
+
+# --- 2. CALCOLO DEI LIVELLI E DEI TEMPI ---
+
+# Trovo i valori massimi e minimi per calcolare l'escursione corretta (A)
+max_CH1_m <- max(df1m$CH1, na.rm = TRUE)
+min_CH1_m <- min(df1m$CH1, na.rm = TRUE)
+
+max_CH1_s <- max(df1s$CH1, na.rm = TRUE)
+min_CH1_s <- min(df1s$CH1, na.rm = TRUE)
+
+# Livelli tau (63.2% dell'escursione tra minimo e massimo: 1 - exp(-1) = 0.632)
+tau_level_m <- min_CH1_m + (max_CH1_m - min_CH1_m) * (1 - exp(-1))
+tau_level_s <- min_CH1_s + (max_CH1_s - min_CH1_s) * (1 - exp(-1))
+
+# Tempi in cui inizia la salita (trovando il minimo prima del picco)
+idx_start_m <- which.min(df1m$CH1[1:which.max(df1m$CH1)])
+t_start_m <- df1m$TIME_us[idx_start_m]
+
+idx_start_s <- which.min(df1s$CH1[1:which.max(df1s$CH1)])
+t_start_s <- df1s$TIME_us[idx_start_s]
+
+# Calcolo del tempo esatto di intersezione (coordinata x delle linee verticali)
+tau_time_m <- get_tau_time_rising(df1m$TIME_us, df1m$CH1, tau_level_m)
+tau_time_s <- get_tau_time_rising(df1s$TIME_us, df1s$CH1, tau_level_s)
+
+# Calcolo della costante di tempo (Delta t = Tempo a tau - Tempo inizio salita)
+tau_val_m <- tau_time_m - t_start_m
+tau_val_s <- tau_time_s - t_start_s
+
+# Estremi per le linee del grafico
+x_min <- min(c(df1m$TIME_us, df1s$TIME_us), na.rm = TRUE)
+x_max <- max(c(df1m$TIME_us, df1s$TIME_us), na.rm = TRUE)
+y_min <- min(c(df1m$CH1, df1s$CH1), na.rm = TRUE) 
+y_max <- max(c(df1m$CH1, df1s$CH1), na.rm = TRUE) 
+
+# --- 3. CREAZIONE DEL GRAFICO PLOTLY ---
+p1_plotly <- plot_ly(height = 700, width = 700) %>%
+  
+  # Traccia 1: Dati Reali (df1m)
+  add_lines(data = df1m, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Reale misurazione (Vout)', 
+            line = list(color = "#04e762", width = 1.5)) %>%
+  
+  # Traccia 1.1: Simulazione (df1s)
+  add_lines(data = df1s, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Simulazione (Vout)', 
+            line = list(color = "#dc0073", width = 1.5)) %>%
+  
+  # ---- Linee per curva REALE (Verdi) ----
+  # Linea orizzontale
+  add_segments(x = x_min, xend = x_max,
+               y = tau_level_m, yend = tau_level_m,
+               name = 'Livello \u03C4 (Reale)',
+               line = list(color = "#04e762", width = 1, dash = 'dash')) %>%
+  # Linea verticale
+  add_segments(x = tau_time_m, xend = tau_time_m,
+               y = y_min, yend = y_max,
+               showlegend = FALSE, 
+               line = list(color = "#04e762", width = 1, dash = 'dash')) %>%
+  
+  # ---- Linee per curva SIMULAZIONE (Fucsia) ----
+  # Linea orizzontale
+  add_segments(x = x_min, xend = x_max,
+               y = tau_level_s, yend = tau_level_s,
+               name = 'Livello \u03C4 (Simul.)',
+               line = list(color = "#dc0073", width = 1, dash = 'dash')) %>%
+  # Linea verticale
+  add_segments(x = tau_time_s, xend = tau_time_s,
+               y = y_min, yend = y_max,
+               showlegend = FALSE, 
+               line = list(color = "#dc0073", width = 1, dash = 'dash')) %>%
+  
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = paste0("<b>Confronto Fronti di Salita con calcolo \u03C4 SiPM connesso e Vbias = 0V</b><br>")
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    yaxis = list(title = "Ampiezza [V]", gridcolor = "#f0f0f0"),
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    margin = list(t = 80, b = 120), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p1_plotly
+
+# --- 4. STAMPA DEI RISULTATI CON CAT ---
+cat("=========================================\n")
+cat("      RISULTATI FRONTE DI SALITA TAU (\u03C4)   \n")
+cat("=========================================\n\n")
+
+cat(">> CURVA REALE (df1m - misurazione)\n")
+cat(sprintf("- Livello ampiezza \u03C4 : %.4f V\n", tau_level_m))
+cat(sprintf("- Istante intersezione : %.4f \u03BCs\n", tau_time_m))
+cat(sprintf("- Costante \u03C4 (\u0394t)    : %.4f \u03BCs\n\n", tau_val_m))
+
+cat(">> CURVA SIMULAZIONE (df1s)\n")
+cat(sprintf("- Livello ampiezza \u03C4 : %.4f V\n", tau_level_s))
+cat(sprintf("- Istante intersezione : %.4f \u03BCs\n", tau_time_s))
+cat(sprintf("- Costante \u03C4 (\u0394t)    : %.4f \u03BCs\n", tau_val_s))
+cat("=========================================\n")
+```
+
+Proseguo con la seconda prova, ovvero senza in SiPM montato.
+
+```{r}
+# =====================================================================
+# IMPOSTAZIONI DELLE SCALE 
+# =====================================================================
+
+# --- SCALA SINISTRA (Per Vout - Tracce 1 e 2) ---
+vout_inizio <- -0.5    # Valore minimo 
+vout_fine   <- 2.5     # Valore massimo 
+vout_step   <- 0.5     # Distanza tra una tacca e l'altra 
+
+# --- SCALA DESTRA (Per Vin - Tracce 1.1 e 2.1) ---
+vin_inizio  <- -0.02    # Valore minimo 
+vin_fine    <- 0.1     # Valore massimo 
+vin_step    <- 0.02     # Distanza tra una tacca e l'altra 
+
+# =====================================================================
+
+# Creazione del grafico nativo con doppio asse
+p2_plotly <- plot_ly(height = 500, width = 700) %>%
+  
+  # Traccia 1 (Vout misurazione -> Usa asse di default a Sinistra)
+  add_lines(data = df2m, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout misurazione', 
+            line = list(color = "#233d4d", width = 1.5)) %>%
+            
+  # Traccia 1.1 (Vin misurazione -> ASSE DESTRO)
+  add_lines(data = df2m, 
+            x = ~TIME_us, 
+            y = ~CH2, 
+            name = 'Vin misurazione', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "#fe7f2d", width = 1.5)) %>%
+            
+  # Traccia 2 (Vout simulazione -> Usa asse di default a Sinistra)
+  add_lines(data = df2s, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout simulazione', 
+            line = list(color = "#fcca46", width = 1.5)) %>%
+            
+  # Traccia 2.1 (Vin simulazione -> ASSE DESTRO)
+  add_lines(data = df2s, 
+            x = ~TIME_us, 
+            y = ~CH2, 
+            name = 'Vin simulazione', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "#a1c181", width = 1.5)) %>%
+            
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = "<b>Confronto Reale e Simulazione SiPM disconnesso</b><br>"
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    
+    # --- CONFIGURAZIONE ASSE SINISTRO (Vout) ---
+    yaxis = list(
+      title = "Ampiezza Vout [V]", 
+      gridcolor = "#f0f0f0",
+      range = c(vout_inizio, vout_fine), # Applica i tuoi limiti
+      dtick = vout_step                  # Applica il tuo step
+    ),
+    
+    # --- CONFIGURAZIONE ASSE DESTRO (Vin) ---
+    yaxis2 = list(
+      title = "Ampiezza Vin [V]",
+      overlaying = "y",                  # Fondamentale: sovrappone al primo asse
+      side = "right",                    # Fondamentale: lo mette a destra
+      range = c(vin_inizio, vin_fine),   # Applica i tuoi limiti
+      dtick = vin_step,                  # Applica il tuo step
+      showgrid = FALSE                   # Nasconde la griglia di Vin per non incrociarsi con quella di Vout
+    ),
+    
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    # Aggiunto un margine destro (r = 60) per non far tagliare i numeri del nuovo asse
+    margin = list(t = 80, b = 120, r = 60), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p2_plotly
+```
+
+Avvicino i segnali per una comparazione migliore
+
+```{r}
+df2m = df2m %>% mutate(TIME_us = TIME_us + 1.7, CH1 = CH1 - 0.02, CH2 = CH2-0.006)
+df2s = df2s%>% mutate(CH1 = CH1 - 0.168)
+```
+
+```{r}
+# =====================================================================
+# IMPOSTAZIONI DELLE SCALE 
+# =====================================================================
+
+# --- SCALA SINISTRA (Per Vout - Tracce 1 e 2) ---
+vout_inizio <- -0.5    # Valore minimo 
+vout_fine   <- 2.5     # Valore massimo 
+vout_step   <- 0.5     # Distanza tra una tacca e l'altra 
+
+# --- SCALA DESTRA (Per Vin - Tracce 1.1 e 2.1) ---
+vin_inizio  <- -0.02    # Valore minimo 
+vin_fine    <- 0.1     # Valore massimo 
+vin_step    <- 0.02     # Distanza tra una tacca e l'altra 
+
+# =====================================================================
+
+# Creazione del grafico nativo con doppio asse
+p2_plotly <- plot_ly(height = 500, width = 700) %>%
+  
+  # Traccia 1 (Vout misurazione -> Usa asse di default a Sinistra)
+  add_lines(data = df2m, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout misurazione', 
+            line = list(color = "#233d4d", width = 1.5)) %>%
+            
+  # Traccia 1.1 (Vin misurazione -> ASSE DESTRO)
+  add_lines(data = df2m, 
+            x = ~TIME_us, 
+            y = ~CH2, 
+            name = 'Vin misurazione', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "#fe7f2d", width = 1.5)) %>%
+            
+  # Traccia 2 (Vout simulazione -> Usa asse di default a Sinistra)
+  add_lines(data = df2s, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout simulazione', 
+            line = list(color = "#fcca46", width = 1.5)) %>%
+            
+  # Traccia 2.1 (Vin simulazione -> ASSE DESTRO)
+  add_lines(data = df2s, 
+            x = ~TIME_us, 
+            y = ~CH2, 
+            name = 'Vin simulazione', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "#a1c181", width = 1.5)) %>%
+            
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = "<b>Confronto Reale e Simulazione SiPM disconnesso</b><br>"
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    
+    # --- CONFIGURAZIONE ASSE SINISTRO (Vout) ---
+    yaxis = list(
+      title = "Ampiezza Vout [V]", 
+      gridcolor = "#f0f0f0",
+      range = c(vout_inizio, vout_fine), # Applica i tuoi limiti
+      dtick = vout_step                  # Applica il tuo step
+    ),
+    
+    # --- CONFIGURAZIONE ASSE DESTRO (Vin) ---
+    yaxis2 = list(
+      title = "Ampiezza Vin [V]",
+      overlaying = "y",                  # Fondamentale: sovrappone al primo asse
+      side = "right",                    # Fondamentale: lo mette a destra
+      range = c(vin_inizio, vin_fine),   # Applica i tuoi limiti
+      dtick = vin_step,                  # Applica il tuo step
+      showgrid = FALSE                   # Nasconde la griglia di Vin per non incrociarsi con quella di Vout
+    ),
+    
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    # Aggiunto un margine destro (r = 60) per non far tagliare i numeri del nuovo asse
+    margin = list(t = 80, b = 120, r = 60), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p2_plotly
+```
+
+Taglio da 1us a 6us
+
+
+```{r}
+df2m <- df2m %>%
+  filter(1 <= TIME_us & TIME_us <= 6) %>%
+  mutate(t_rel = TIME_us - 1)
+
+df2s = df2s %>% filter(1 <= TIME_us & TIME_us <= 6) %>%
+  mutate(t_rel = TIME_us - 1)
+```
+
+
+```{r}
+# =====================================================================
+# IMPOSTAZIONI DELLE SCALE 
+# =====================================================================
+
+# --- SCALA SINISTRA (Per Vout - Tracce 1 e 2) ---
+vout_inizio <- -0.5    # Valore minimo 
+vout_fine   <- 2.5     # Valore massimo 
+vout_step   <- 0.5     # Distanza tra una tacca e l'altra 
+
+# --- SCALA DESTRA (Per Vin - Tracce 1.1 e 2.1) ---
+vin_inizio  <- -0.02    # Valore minimo 
+vin_fine    <- 0.1     # Valore massimo 
+vin_step    <- 0.02     # Distanza tra una tacca e l'altra 
+
+# =====================================================================
+
+# Creazione del grafico nativo con doppio asse
+p2_plotly <- plot_ly(height = 500, width = 700) %>%
+  
+  # Traccia 1 (Vout misurazione -> Usa asse di default a Sinistra)
+  add_lines(data = df2m, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout misurazione', 
+            line = list(color = "#233d4d", width = 1.5)) %>%
+            
+  # Traccia 2 (Vout simulazione -> Usa asse di default a Sinistra)
+  add_lines(data = df2s, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout simulazione', 
+            line = list(color = "#fcca46", width = 1.5)) %>%
+            
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = "<b>Confronto Reale e Simulazione SiPM disconnesso</b><br>"
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    
+    # --- CONFIGURAZIONE ASSE SINISTRO (Vout) ---
+    yaxis = list(
+      title = "Ampiezza Vout [V]", 
+      gridcolor = "#f0f0f0",
+      range = c(vout_inizio, vout_fine), # Applica i tuoi limiti
+      dtick = vout_step                  # Applica il tuo step
+    ),
+    
+    
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    # Aggiunto un margine destro (r = 60) per non far tagliare i numeri del nuovo asse
+    margin = list(t = 80, b = 120, r = 60), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p2_plotly
+```
+
+```{r, results='hold'}
+# --- 1. FUNZIONE DI SUPPORTO PER INTERPOLAZIONE (SALITA) ---
+# Questa funzione trova il tempo esatto in cui il segnale in salita attraversa tau
+get_tau_time_rising <- function(t, y, tau_level) {
+  idx_max <- which.max(y)
+  
+  # Isola solo la parte della curva PRIMA del picco massimo (fase di salita)
+  rise_y <- y[1:idx_max]
+  rise_t <- t[1:idx_max]
+  
+  # Trova il primo punto in cui il segnale SALE sopra il livello tau
+  idx_above <- which(rise_y >= tau_level)[1]
+  
+  # Se non sale mai sopra tau (es. dati tagliati), restituisci NA
+  if(is.na(idx_above)) return(NA)
+  if(idx_above == 1) return(rise_t[1])
+  
+  # Interpolazione lineare tra il punto appena sotto la soglia e quello appena sopra
+  x1 <- rise_t[idx_above - 1]
+  x2 <- rise_t[idx_above]
+  y1 <- rise_y[idx_above - 1]
+  y2 <- rise_y[idx_above]
+  
+  tau_time <- x1 + (tau_level - y1) * (x2 - x1) / (y2 - y1)
+  return(tau_time)
+}
+
+# --- 2. CALCOLO DEI LIVELLI E DEI TEMPI ---
+
+# Trovo i valori massimi e minimi per calcolare l'escursione corretta (A)
+max_CH1_m <- max(df2m$CH1, na.rm = TRUE)
+min_CH1_m <- min(df2m$CH1, na.rm = TRUE)
+
+max_CH1_s <- max(df2s$CH1, na.rm = TRUE)
+min_CH1_s <- min(df2s$CH1, na.rm = TRUE)
+
+# Livelli tau (63.2% dell'escursione tra minimo e massimo: 1 - exp(-1) = 0.632)
+tau_level_m <- min_CH1_m + (max_CH1_m - min_CH1_m) * (1 - exp(-1))
+tau_level_s <- min_CH1_s + (max_CH1_s - min_CH1_s) * (1 - exp(-1))
+
+# Tempi in cui inizia la salita (trovando il minimo prima del picco)
+idx_start_m <- which.min(df2m$CH1[1:which.max(df2m$CH1)])
+t_start_m <- df2m$TIME_us[idx_start_m]
+
+idx_start_s <- which.min(df2s$CH1[1:which.max(df2s$CH1)])
+t_start_s <- df2s$TIME_us[idx_start_s]
+
+# Calcolo del tempo esatto di intersezione (coordinata x delle linee verticali)
+tau_time_m <- get_tau_time_rising(df2m$TIME_us, df2m$CH1, tau_level_m)
+tau_time_s <- get_tau_time_rising(df2s$TIME_us, df2s$CH1, tau_level_s)
+
+# Calcolo della costante di tempo (Delta t = Tempo a tau - Tempo inizio salita)
+tau_val_m <- tau_time_m - t_start_m
+tau_val_s <- tau_time_s - t_start_s
+
+# Estremi per le linee del grafico
+x_min <- min(c(df2m$TIME_us, df2s$TIME_us), na.rm = TRUE)
+x_max <- max(c(df2m$TIME_us, df2s$TIME_us), na.rm = TRUE)
+y_min <- min(c(df2m$CH1, df2s$CH1), na.rm = TRUE) 
+y_max <- max(c(df2m$CH1, df2s$CH1), na.rm = TRUE) 
+
+# --- 3. CREAZIONE DEL GRAFICO PLOTLY ---
+p2_plotly <- plot_ly(height = 700, width = 700) %>%
+  
+  # Traccia 1: Dati Reali (df2m)
+  add_lines(data = df2m, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Reale misurazione (Vout)', 
+            line = list(color = "#233d4d", width = 1.5)) %>%
+  
+  # Traccia 1.1: Simulazione (df2s)
+  add_lines(data = df2s, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Simulazione (Vout)', 
+            line = list(color = "#fcca46", width = 1.5)) %>%
+  
+  # ---- Linee per curva REALE (Verdi) ----
+  # Linea orizzontale
+  add_segments(x = x_min, xend = x_max,
+               y = tau_level_m, yend = tau_level_m,
+               name = 'Livello \u03C4 (Reale)',
+               line = list(color = "#233d4d", width = 1, dash = 'dash')) %>%
+  # Linea verticale
+  add_segments(x = tau_time_m, xend = tau_time_m,
+               y = y_min, yend = y_max,
+               showlegend = FALSE, 
+               line = list(color = "#233d4d", width = 1, dash = 'dash')) %>%
+  
+  # ---- Linee per curva SIMULAZIONE (Fucsia) ----
+  # Linea orizzontale
+  add_segments(x = x_min, xend = x_max,
+               y = tau_level_s, yend = tau_level_s,
+               name = 'Livello \u03C4 (Simul.)',
+               line = list(color = "#fcca46", width = 1, dash = 'dash')) %>%
+  # Linea verticale
+  add_segments(x = tau_time_s, xend = tau_time_s,
+               y = y_min, yend = y_max,
+               showlegend = FALSE, 
+               line = list(color = "#fcca46", width = 1, dash = 'dash')) %>%
+  
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = paste0("<b>Confronto Fronti di Salita con calcolo \u03C4 SiPM disconnesso</b><br>")
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    yaxis = list(title = "Ampiezza [V]", gridcolor = "#f0f0f0"),
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    margin = list(t = 80, b = 120), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p2_plotly
+
+# --- 4. STAMPA DEI RISULTATI CON CAT ---
+cat("=========================================\n")
+cat("      RISULTATI FRONTE DI SALITA TAU (\u03C4)   \n")
+cat("=========================================\n\n")
+
+cat(">> CURVA REALE (df2m - misurazione)\n")
+cat(sprintf("- Livello ampiezza \u03C4 : %.4f V\n", tau_level_m))
+cat(sprintf("- Istante intersezione : %.4f \u03BCs\n", tau_time_m))
+cat(sprintf("- Costante \u03C4 (\u0394t)    : %.4f \u03BCs\n\n", tau_val_m))
+
+cat(">> CURVA SIMULAZIONE (df2s)\n")
+cat(sprintf("- Livello ampiezza \u03C4 : %.4f V\n", tau_level_s))
+cat(sprintf("- Istante intersezione : %.4f \u03BCs\n", tau_time_s))
+cat(sprintf("- Costante \u03C4 (\u0394t)    : %.4f \u03BCs\n", tau_val_s))
+cat("=========================================\n")
+```
+
+Proseguo con la terza prova, ovvero il SiPM alimentato con Vbias = 26V e un gradino di ampiezza 5us
+
+```{r}
+# =====================================================================
+# IMPOSTAZIONI DELLE SCALE 
+# =====================================================================
+
+# --- SCALA SINISTRA (Per Vout - Tracce 1 e 2) ---
+vout_inizio <- -0.5    # Valore minimo 
+vout_fine   <- 2.5     # Valore massimo 
+vout_step   <- 0.5     # Distanza tra una tacca e l'altra 
+
+# --- SCALA DESTRA (Per Vin - Tracce 1.1 e 2.1) ---
+vin_inizio  <- -0.02    # Valore minimo 
+vin_fine    <- 0.1     # Valore massimo 
+vin_step    <- 0.02     # Distanza tra una tacca e l'altra 
+
+# =====================================================================
+
+# Creazione del grafico nativo con doppio asse
+p3_plotly <- plot_ly(height = 500, width = 700) %>%
+  
+  # Traccia 1 (Vout misurazione -> Usa asse di default a Sinistra)
+  add_lines(data = df3m, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout misurazione', 
+            line = list(color = "#d00000", width = 1.5)) %>%
+            
+  # Traccia 1.1 (Vin misurazione -> ASSE DESTRO)
+  add_lines(data = df3m, 
+            x = ~TIME_us, 
+            y = ~CH2, 
+            name = 'Vin misurazione', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "#ffba08", width = 1.5)) %>%
+            
+  # Traccia 2 (Vout simulazione -> Usa asse di default a Sinistra)
+  add_lines(data = df3s, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout simulazione', 
+            line = list(color = "#3f88c5", width = 1.5)) %>%
+            
+  # Traccia 2.1 (Vin simulazione -> ASSE DESTRO)
+  add_lines(data = df3s, 
+            x = ~TIME_us, 
+            y = ~CH2, 
+            name = 'Vin simulazione', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "#032b43", width = 1.5)) %>%
+            
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = "<b>Confronto Reale e Simulazione SiPM Vbias = 26V con gradino di 5\u03bc s</b><br>"
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    
+    # --- CONFIGURAZIONE ASSE SINISTRO (Vout) ---
+    yaxis = list(
+      title = "Ampiezza Vout [V]", 
+      gridcolor = "#f0f0f0",
+      range = c(vout_inizio, vout_fine), # Applica i tuoi limiti
+      dtick = vout_step                  # Applica il tuo step
+    ),
+    
+    # --- CONFIGURAZIONE ASSE DESTRO (Vin) ---
+    yaxis2 = list(
+      title = "Ampiezza Vin [V]",
+      overlaying = "y",                  # Fondamentale: sovrappone al primo asse
+      side = "right",                    # Fondamentale: lo mette a destra
+      range = c(vin_inizio, vin_fine),   # Applica i tuoi limiti
+      dtick = vin_step,                  # Applica il tuo step
+      showgrid = FALSE                   # Nasconde la griglia di Vin per non incrociarsi con quella di Vout
+    ),
+    
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    # Aggiunto un margine destro (r = 60) per non far tagliare i numeri del nuovo asse
+    margin = list(t = 80, b = 120, r = 60), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p3_plotly
+```
+
+Avvicino i segnali per una comparazione migliore
+
+```{r}
+df3m = df3m %>% mutate(TIME_us = TIME_us + 2.64, CH1 = CH1 - 0.02, CH2 = CH2-0.0055)
+df3s = df3s%>% mutate(CH1 = CH1 - 0.168)
+```
+
+```{r}
+# =====================================================================
+# IMPOSTAZIONI DELLE SCALE 
+# =====================================================================
+
+# --- SCALA SINISTRA (Per Vout - Tracce 1 e 2) ---
+vout_inizio <- -0.5    # Valore minimo 
+vout_fine   <- 2.5     # Valore massimo 
+vout_step   <- 0.5     # Distanza tra una tacca e l'altra 
+
+# --- SCALA DESTRA (Per Vin - Tracce 1.1 e 2.1) ---
+vin_inizio  <- -0.02    # Valore minimo 
+vin_fine    <- 0.1     # Valore massimo 
+vin_step    <- 0.02     # Distanza tra una tacca e l'altra 
+
+# =====================================================================
+
+# Creazione del grafico nativo con doppio asse
+p3_plotly <- plot_ly(height = 500, width = 700) %>%
+  
+  # Traccia 1 (Vout misurazione -> Usa asse di default a Sinistra)
+  add_lines(data = df3m, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout misurazione', 
+            line = list(color = "#d00000", width = 1.5)) %>%
+            
+  # Traccia 1.1 (Vin misurazione -> ASSE DESTRO)
+  add_lines(data = df3m, 
+            x = ~TIME_us, 
+            y = ~CH2, 
+            name = 'Vin misurazione', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "#ffba08", width = 1.5)) %>%
+            
+  # Traccia 2 (Vout simulazione -> Usa asse di default a Sinistra)
+  add_lines(data = df3s, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout simulazione', 
+            line = list(color = "#3f88c5", width = 1.5)) %>%
+            
+  # Traccia 2.1 (Vin simulazione -> ASSE DESTRO)
+  add_lines(data = df3s, 
+            x = ~TIME_us, 
+            y = ~CH2, 
+            name = 'Vin simulazione', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "#032b43", width = 1.5)) %>%
+            
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = "<b>Confronto Reale e Simulazione SiPM Vbias = 26V con gradino di 5\u03bc s</b><br>"
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    
+    # --- CONFIGURAZIONE ASSE SINISTRO (Vout) ---
+    yaxis = list(
+      title = "Ampiezza Vout [V]", 
+      gridcolor = "#f0f0f0",
+      range = c(vout_inizio, vout_fine), # Applica i tuoi limiti
+      dtick = vout_step                  # Applica il tuo step
+    ),
+    
+    # --- CONFIGURAZIONE ASSE DESTRO (Vin) ---
+    yaxis2 = list(
+      title = "Ampiezza Vin [V]",
+      overlaying = "y",                  # Fondamentale: sovrappone al primo asse
+      side = "right",                    # Fondamentale: lo mette a destra
+      range = c(vin_inizio, vin_fine),   # Applica i tuoi limiti
+      dtick = vin_step,                  # Applica il tuo step
+      showgrid = FALSE                   # Nasconde la griglia di Vin per non incrociarsi con quella di Vout
+    ),
+    
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    # Aggiunto un margine destro (r = 60) per non far tagliare i numeri del nuovo asse
+    margin = list(t = 80, b = 120, r = 60), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p3_plotly
+```
+
+Taglio da 1us a 6.2us
+
+
+```{r}
+df3m <- df3m %>%
+  filter(1 <= TIME_us & TIME_us <= 6.2) %>%
+  mutate(t_rel = TIME_us - 1)
+
+df3s = df3s %>% filter(1 <= TIME_us & TIME_us <= 6.2) %>%
+  mutate(t_rel = TIME_us - 1)
+```
+
+```{r}
+# =====================================================================
+# IMPOSTAZIONI DELLE SCALE 
+# =====================================================================
+
+# --- SCALA SINISTRA (Per Vout - Tracce 1 e 2) ---
+vout_inizio <- -0.5    # Valore minimo 
+vout_fine   <- 2.5     # Valore massimo 
+vout_step   <- 0.5     # Distanza tra una tacca e l'altra 
+
+# --- SCALA DESTRA (Per Vin - Tracce 1.1 e 2.1) ---
+vin_inizio  <- -0.02    # Valore minimo 
+vin_fine    <- 0.1     # Valore massimo 
+vin_step    <- 0.02     # Distanza tra una tacca e l'altra 
+
+# =====================================================================
+
+# Creazione del grafico nativo con doppio asse
+p3_plotly <- plot_ly(height = 500, width = 700) %>%
+  
+  # Traccia 1 (Vout misurazione -> Usa asse di default a Sinistra)
+  add_lines(data = df3m, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout misurazione', 
+            line = list(color = "#d00000", width = 1.5)) %>%
+            
+  # Traccia 2 (Vout simulazione -> Usa asse di default a Sinistra)
+  add_lines(data = df3s, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout simulazione', 
+            line = list(color = "#3f88c5", width = 1.5)) %>%
+            
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = "<b>Confronto Reale e Simulazione SiPM Vbias = 26V con gradino di 5\u03bc s</b><br>"
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    
+    # --- CONFIGURAZIONE ASSE SINISTRO (Vout) ---
+    yaxis = list(
+      title = "Ampiezza Vout [V]", 
+      gridcolor = "#f0f0f0",
+      range = c(vout_inizio, vout_fine), # Applica i tuoi limiti
+      dtick = vout_step                  # Applica il tuo step
+    ),
+    
+    
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    # Aggiunto un margine destro (r = 60) per non far tagliare i numeri del nuovo asse
+    margin = list(t = 80, b = 120, r = 60), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p3_plotly
+```
+
+```{r, results='hold'}
+# --- 1. FUNZIONE DI SUPPORTO PER INTERPOLAZIONE (SALITA) ---
+# Questa funzione trova il tempo esatto in cui il segnale in salita attraversa tau
+get_tau_time_rising <- function(t, y, tau_level) {
+  idx_max <- which.max(y)
+  
+  # Isola solo la parte della curva PRIMA del picco massimo (fase di salita)
+  rise_y <- y[1:idx_max]
+  rise_t <- t[1:idx_max]
+  
+  # Trova il primo punto in cui il segnale SALE sopra il livello tau
+  idx_above <- which(rise_y >= tau_level)[1]
+  
+  # Se non sale mai sopra tau (es. dati tagliati), restituisci NA
+  if(is.na(idx_above)) return(NA)
+  if(idx_above == 1) return(rise_t[1])
+  
+  # Interpolazione lineare tra il punto appena sotto la soglia e quello appena sopra
+  x1 <- rise_t[idx_above - 1]
+  x2 <- rise_t[idx_above]
+  y1 <- rise_y[idx_above - 1]
+  y2 <- rise_y[idx_above]
+  
+  tau_time <- x1 + (tau_level - y1) * (x2 - x1) / (y2 - y1)
+  return(tau_time)
+}
+
+# --- 2. CALCOLO DEI LIVELLI E DEI TEMPI ---
+
+# Trovo i valori massimi e minimi per calcolare l'escursione corretta (A)
+max_CH1_m <- max(df3m$CH1, na.rm = TRUE)
+min_CH1_m <- min(df3m$CH1, na.rm = TRUE)
+
+max_CH1_s <- max(df3s$CH1, na.rm = TRUE)
+min_CH1_s <- min(df3s$CH1, na.rm = TRUE)
+
+# Livelli tau (63.2% dell'escursione tra minimo e massimo: 1 - exp(-1) = 0.632)
+tau_level_m <- min_CH1_m + (max_CH1_m - min_CH1_m) * (1 - exp(-1))
+tau_level_s <- min_CH1_s + (max_CH1_s - min_CH1_s) * (1 - exp(-1))
+
+# Tempi in cui inizia la salita (trovando il minimo prima del picco)
+idx_start_m <- which.min(df3m$CH1[1:which.max(df3m$CH1)])
+t_start_m <- df3m$TIME_us[idx_start_m]
+
+idx_start_s <- which.min(df3s$CH1[1:which.max(df3s$CH1)])
+t_start_s <- df3s$TIME_us[idx_start_s]
+
+# Calcolo del tempo esatto di intersezione (coordinata x delle linee verticali)
+tau_time_m <- get_tau_time_rising(df3m$TIME_us, df3m$CH1, tau_level_m)
+tau_time_s <- get_tau_time_rising(df3s$TIME_us, df3s$CH1, tau_level_s)
+
+# Calcolo della costante di tempo (Delta t = Tempo a tau - Tempo inizio salita)
+tau_val_m <- tau_time_m - t_start_m
+tau_val_s <- tau_time_s - t_start_s
+
+# Estremi per le linee del grafico
+x_min <- min(c(df3m$TIME_us, df3s$TIME_us), na.rm = TRUE)
+x_max <- max(c(df3m$TIME_us, df3s$TIME_us), na.rm = TRUE)
+y_min <- min(c(df3m$CH1, df3s$CH1), na.rm = TRUE) 
+y_max <- max(c(df3m$CH1, df3s$CH1), na.rm = TRUE) 
+
+# --- 3. CREAZIONE DEL GRAFICO PLOTLY ---
+p3_plotly <- plot_ly(height = 700, width = 700) %>%
+  
+  # Traccia 1: Dati Reali (df3m)
+  add_lines(data = df3m, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Reale misurazione (Vout)', 
+            line = list(color = "#d00000", width = 1.5)) %>%
+  
+  # Traccia 1.1: Simulazione (df3s)
+  add_lines(data = df3s, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Simulazione (Vout)', 
+            line = list(color = "#3f88c5", width = 1.5)) %>%
+  
+  # ---- Linee per curva REALE (Verdi) ----
+  # Linea orizzontale
+  add_segments(x = x_min, xend = x_max,
+               y = tau_level_m, yend = tau_level_m,
+               name = 'Livello \u03C4 (Reale)',
+               line = list(color = "#d00000", width = 1, dash = 'dash')) %>%
+  # Linea verticale
+  add_segments(x = tau_time_m, xend = tau_time_m,
+               y = y_min, yend = y_max,
+               showlegend = FALSE, 
+               line = list(color = "#d00000", width = 1, dash = 'dash')) %>%
+  
+  # ---- Linee per curva SIMULAZIONE (Fucsia) ----
+  # Linea orizzontale
+  add_segments(x = x_min, xend = x_max,
+               y = tau_level_s, yend = tau_level_s,
+               name = 'Livello \u03C4 (Simul.)',
+               line = list(color = "#3f88c5", width = 1, dash = 'dash')) %>%
+  # Linea verticale
+  add_segments(x = tau_time_s, xend = tau_time_s,
+               y = y_min, yend = y_max,
+               showlegend = FALSE, 
+               line = list(color = "#3f88c5", width = 1, dash = 'dash')) %>%
+  
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = paste0("<b>Confronto Fronti di Salita con calcolo \u03C4 SiPM Vbias = 26V con gradino di 5\u03bc s</b><br>")
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    yaxis = list(title = "Ampiezza [V]", gridcolor = "#f0f0f0"),
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    margin = list(t = 80, b = 120), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p3_plotly
+
+# --- 4. STAMPA DEI RISULTATI CON CAT ---
+cat("=========================================\n")
+cat("      RISULTATI FRONTE DI SALITA TAU (\u03C4)   \n")
+cat("=========================================\n\n")
+
+cat(">> CURVA REALE (df3m - misurazione)\n")
+cat(sprintf("- Livello ampiezza \u03C4 : %.4f V\n", tau_level_m))
+cat(sprintf("- Istante intersezione : %.4f \u03BCs\n", tau_time_m))
+cat(sprintf("- Costante \u03C4 (\u0394t)    : %.4f \u03BCs\n\n", tau_val_m))
+
+cat(">> CURVA SIMULAZIONE (df3s)\n")
+cat(sprintf("- Livello ampiezza \u03C4 : %.4f V\n", tau_level_s))
+cat(sprintf("- Istante intersezione : %.4f \u03BCs\n", tau_time_s))
+cat(sprintf("- Costante \u03C4 (\u0394t)    : %.4f \u03BCs\n", tau_val_s))
+cat("=========================================\n")
+```
+Infine con la quarta misura, il SiPM collegato con Vbias = 26V con un impulso di 10us
+
+```{r}
+# =====================================================================
+# IMPOSTAZIONI DELLE SCALE 
+# =====================================================================
+
+# --- SCALA SINISTRA (Per Vout - Tracce 1 e 2) ---
+vout_inizio <- -0.5    # Valore minimo 
+vout_fine   <- 2.5     # Valore massimo 
+vout_step   <- 0.5     # Distanza tra una tacca e l'altra 
+
+# --- SCALA DESTRA (Per Vin - Tracce 1.1 e 2.1) ---
+vin_inizio  <- -0.02    # Valore minimo 
+vin_fine    <- 0.1     # Valore massimo 
+vin_step    <- 0.02     # Distanza tra una tacca e l'altra 
+
+# =====================================================================
+
+# Creazione del grafico nativo con doppio asse
+p4_plotly <- plot_ly(height = 500, width = 700) %>%
+  
+  # Traccia 1 (Vout misurazione -> Usa asse di default a Sinistra)
+  add_lines(data = df4m, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout misurazione', 
+            line = list(color = "#d7263d", width = 1.5)) %>%
+            
+  # Traccia 1.1 (Vin misurazione -> ASSE DESTRO)
+  add_lines(data = df4m, 
+            x = ~TIME_us, 
+            y = ~CH2, 
+            name = 'Vin misurazione', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "#f46036", width = 1.5)) %>%
+            
+  # Traccia 2 (Vout simulazione -> Usa asse di default a Sinistra)
+  add_lines(data = df4s, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout simulazione', 
+            line = list(color = "#2e294e", width = 1.5)) %>%
+            
+  # Traccia 2.1 (Vin simulazione -> ASSE DESTRO)
+  add_lines(data = df4s, 
+            x = ~TIME_us, 
+            y = ~CH2, 
+            name = 'Vin simulazione', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "#1b998b", width = 1.5)) %>%
+            
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = "<b>Confronto Reale e Simulazione SiPM Vbias = 26V con gradino di 10\u03bc s</b><br>"
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    
+    # --- CONFIGURAZIONE ASSE SINISTRO (Vout) ---
+    yaxis = list(
+      title = "Ampiezza Vout [V]", 
+      gridcolor = "#f0f0f0",
+      range = c(vout_inizio, vout_fine), # Applica i tuoi limiti
+      dtick = vout_step                  # Applica il tuo step
+    ),
+    
+    # --- CONFIGURAZIONE ASSE DESTRO (Vin) ---
+    yaxis2 = list(
+      title = "Ampiezza Vin [V]",
+      overlaying = "y",                  # Fondamentale: sovrappone al primo asse
+      side = "right",                    # Fondamentale: lo mette a destra
+      range = c(vin_inizio, vin_fine),   # Applica i tuoi limiti
+      dtick = vin_step,                  # Applica il tuo step
+      showgrid = FALSE                   # Nasconde la griglia di Vin per non incrociarsi con quella di Vout
+    ),
+    
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    # Aggiunto un margine destro (r = 60) per non far tagliare i numeri del nuovo asse
+    margin = list(t = 80, b = 120, r = 60), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p4_plotly
+```
+
+Avvicino i segnali per una comparazione migliore
+
+```{r}
+df4m = df4m %>% mutate(TIME_us = TIME_us + 2.56, CH1 = CH1 - 0.02, CH2 = CH2-0.006)
+df4s = df4s%>% mutate(CH1 = CH1 - 0.168)
+```
+
+```{r}
+# =====================================================================
+# IMPOSTAZIONI DELLE SCALE 
+# =====================================================================
+
+# --- SCALA SINISTRA (Per Vout - Tracce 1 e 2) ---
+vout_inizio <- -0.5    # Valore minimo 
+vout_fine   <- 2.5     # Valore massimo 
+vout_step   <- 0.5     # Distanza tra una tacca e l'altra 
+
+# --- SCALA DESTRA (Per Vin - Tracce 1.1 e 2.1) ---
+vin_inizio  <- -0.02    # Valore minimo 
+vin_fine    <- 0.1     # Valore massimo 
+vin_step    <- 0.02     # Distanza tra una tacca e l'altra 
+
+# =====================================================================
+
+# Creazione del grafico nativo con doppio asse
+p4_plotly <- plot_ly(height = 500, width = 700) %>%
+  
+  # Traccia 1 (Vout misurazione -> Usa asse di default a Sinistra)
+  add_lines(data = df4m, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout misurazione', 
+            line = list(color = "#d7263d", width = 1.5)) %>%
+            
+  # Traccia 1.1 (Vin misurazione -> ASSE DESTRO)
+  add_lines(data = df4m, 
+            x = ~TIME_us, 
+            y = ~CH2, 
+            name = 'Vin misurazione', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "#f46036", width = 1.5)) %>%
+            
+  # Traccia 2 (Vout simulazione -> Usa asse di default a Sinistra)
+  add_lines(data = df4s, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout simulazione', 
+            line = list(color = "#2e294e", width = 1.5)) %>%
+            
+  # Traccia 2.1 (Vin simulazione -> ASSE DESTRO)
+  add_lines(data = df4s, 
+            x = ~TIME_us, 
+            y = ~CH2, 
+            name = 'Vin simulazione', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "#1b998b", width = 1.5)) %>%
+            
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = "<b>Confronto Reale e Simulazione SiPM Vbias = 26V con gradino di 10\u03bc s</b><br>"
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    
+    # --- CONFIGURAZIONE ASSE SINISTRO (Vout) ---
+    yaxis = list(
+      title = "Ampiezza Vout [V]", 
+      gridcolor = "#f0f0f0",
+      range = c(vout_inizio, vout_fine), # Applica i tuoi limiti
+      dtick = vout_step                  # Applica il tuo step
+    ),
+    
+    # --- CONFIGURAZIONE ASSE DESTRO (Vin) ---
+    yaxis2 = list(
+      title = "Ampiezza Vin [V]",
+      overlaying = "y",                  # Fondamentale: sovrappone al primo asse
+      side = "right",                    # Fondamentale: lo mette a destra
+      range = c(vin_inizio, vin_fine),   # Applica i tuoi limiti
+      dtick = vin_step,                  # Applica il tuo step
+      showgrid = FALSE                   # Nasconde la griglia di Vin per non incrociarsi con quella di Vout
+    ),
+    
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    # Aggiunto un margine destro (r = 60) per non far tagliare i numeri del nuovo asse
+    margin = list(t = 80, b = 120, r = 60), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p4_plotly
+```
+
+Taglio da 1us a 11us
+
+
+```{r}
+df4m <- df4m %>%
+  filter(1 <= TIME_us & TIME_us <= 11) %>%
+  mutate(t_rel = TIME_us - 1)
+
+df4s = df4s %>% filter(1 <= TIME_us & TIME_us <= 11) %>%
+  mutate(t_rel = TIME_us - 1)
+```
+
+```{r}
+# =====================================================================
+# IMPOSTAZIONI DELLE SCALE 
+# =====================================================================
+
+# --- SCALA SINISTRA (Per Vout - Tracce 1 e 2) ---
+vout_inizio <- -0.5    # Valore minimo 
+vout_fine   <- 2.5     # Valore massimo 
+vout_step   <- 0.5     # Distanza tra una tacca e l'altra 
+
+# --- SCALA DESTRA (Per Vin - Tracce 1.1 e 2.1) ---
+vin_inizio  <- -0.02    # Valore minimo 
+vin_fine    <- 0.1     # Valore massimo 
+vin_step    <- 0.02     # Distanza tra una tacca e l'altra 
+
+# =====================================================================
+
+# Creazione del grafico nativo con doppio asse
+p4_plotly <- plot_ly(height = 500, width = 700) %>%
+  
+  # Traccia 1 (Vout misurazione -> Usa asse di default a Sinistra)
+  add_lines(data = df4m, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout misurazione', 
+            line = list(color = "#d7263d", width = 1.5)) %>%
+            
+  # Traccia 2 (Vout simulazione -> Usa asse di default a Sinistra)
+  add_lines(data = df4s, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Vout simulazione', 
+            line = list(color = "#2e294e", width = 1.5)) %>%
+            
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = "<b>Confronto Reale e Simulazione SiPM Vbias = 26V con gradino di 10\u03bc s</b><br>"
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    
+    # --- CONFIGURAZIONE ASSE SINISTRO (Vout) ---
+    yaxis = list(
+      title = "Ampiezza Vout [V]", 
+      gridcolor = "#f0f0f0",
+      range = c(vout_inizio, vout_fine), # Applica i tuoi limiti
+      dtick = vout_step                  # Applica il tuo step
+    ),
+    
+    
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    # Aggiunto un margine destro (r = 60) per non far tagliare i numeri del nuovo asse
+    margin = list(t = 80, b = 120, r = 60), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p4_plotly
+```
+
+```{r, results='hold'}
+# --- 1. FUNZIONE DI SUPPORTO PER INTERPOLAZIONE (SALITA) ---
+# Questa funzione trova il tempo esatto in cui il segnale in salita attraversa tau
+get_tau_time_rising <- function(t, y, tau_level) {
+  idx_max <- which.max(y)
+  
+  # Isola solo la parte della curva PRIMA del picco massimo (fase di salita)
+  rise_y <- y[1:idx_max]
+  rise_t <- t[1:idx_max]
+  
+  # Trova il primo punto in cui il segnale SALE sopra il livello tau
+  idx_above <- which(rise_y >= tau_level)[1]
+  
+  # Se non sale mai sopra tau (es. dati tagliati), restituisci NA
+  if(is.na(idx_above)) return(NA)
+  if(idx_above == 1) return(rise_t[1])
+  
+  # Interpolazione lineare tra il punto appena sotto la soglia e quello appena sopra
+  x1 <- rise_t[idx_above - 1]
+  x2 <- rise_t[idx_above]
+  y1 <- rise_y[idx_above - 1]
+  y2 <- rise_y[idx_above]
+  
+  tau_time <- x1 + (tau_level - y1) * (x2 - x1) / (y2 - y1)
+  return(tau_time)
+}
+
+# --- 2. CALCOLO DEI LIVELLI E DEI TEMPI ---
+
+# Trovo i valori massimi e minimi per calcolare l'escursione corretta (A)
+max_CH1_m <- max(df4m$CH1, na.rm = TRUE)
+min_CH1_m <- min(df4m$CH1, na.rm = TRUE)
+
+max_CH1_s <- max(df4s$CH1, na.rm = TRUE)
+min_CH1_s <- min(df4s$CH1, na.rm = TRUE)
+
+# Livelli tau (63.2% dell'escursione tra minimo e massimo: 1 - exp(-1) = 0.632)
+tau_level_m <- min_CH1_m + (max_CH1_m - min_CH1_m) * (1 - exp(-1))
+tau_level_s <- min_CH1_s + (max_CH1_s - min_CH1_s) * (1 - exp(-1))
+
+# Tempi in cui inizia la salita (trovando il minimo prima del picco)
+idx_start_m <- which.min(df4m$CH1[1:which.max(df4m$CH1)])
+t_start_m <- df4m$TIME_us[idx_start_m]
+
+idx_start_s <- which.min(df4s$CH1[1:which.max(df4s$CH1)])
+t_start_s <- df4s$TIME_us[idx_start_s]
+
+# Calcolo del tempo esatto di intersezione (coordinata x delle linee verticali)
+tau_time_m <- get_tau_time_rising(df4m$TIME_us, df4m$CH1, tau_level_m)
+tau_time_s <- get_tau_time_rising(df4s$TIME_us, df4s$CH1, tau_level_s)
+
+# Calcolo della costante di tempo (Delta t = Tempo a tau - Tempo inizio salita)
+tau_val_m <- tau_time_m - t_start_m
+tau_val_s <- tau_time_s - t_start_s
+
+# Estremi per le linee del grafico
+x_min <- min(c(df4m$TIME_us, df4s$TIME_us), na.rm = TRUE)
+x_max <- max(c(df4m$TIME_us, df4s$TIME_us), na.rm = TRUE)
+y_min <- min(c(df4m$CH1, df4s$CH1), na.rm = TRUE) 
+y_max <- max(c(df4m$CH1, df4s$CH1), na.rm = TRUE) 
+
+# --- 3. CREAZIONE DEL GRAFICO PLOTLY ---
+p4_plotly <- plot_ly(height = 700, width = 700) %>%
+  
+  # Traccia 1: Dati Reali (df4m)
+  add_lines(data = df4m, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Reale misurazione (Vout)', 
+            line = list(color = "#d7263d", width = 1.5)) %>%
+  
+  # Traccia 1.1: Simulazione (df4s)
+  add_lines(data = df4s, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Simulazione (Vout)', 
+            line = list(color = "#2e294e", width = 1.5)) %>%
+  
+  # ---- Linee per curva REALE (Verdi) ----
+  # Linea orizzontale
+  add_segments(x = x_min, xend = x_max,
+               y = tau_level_m, yend = tau_level_m,
+               name = 'Livello \u03C4 (Reale)',
+               line = list(color = "#d7263d", width = 1, dash = 'dash')) %>%
+  # Linea verticale
+  add_segments(x = tau_time_m, xend = tau_time_m,
+               y = y_min, yend = y_max,
+               showlegend = FALSE, 
+               line = list(color = "#d7263d", width = 1, dash = 'dash')) %>%
+  
+  # ---- Linee per curva SIMULAZIONE (Fucsia) ----
+  # Linea orizzontale
+  add_segments(x = x_min, xend = x_max,
+               y = tau_level_s, yend = tau_level_s,
+               name = 'Livello \u03C4 (Simul.)',
+               line = list(color = "#2e294e", width = 1, dash = 'dash')) %>%
+  # Linea verticale
+  add_segments(x = tau_time_s, xend = tau_time_s,
+               y = y_min, yend = y_max,
+               showlegend = FALSE, 
+               line = list(color = "#2e294e", width = 1, dash = 'dash')) %>%
+  
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = paste0("<b>Confronto Fronti di Salita con calcolo \u03C4 SiPM Vbias = 26V con gradino di 10\u03bc s</b><br>")
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    yaxis = list(title = "Ampiezza [V]", gridcolor = "#f0f0f0"),
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    margin = list(t = 80, b = 120), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p4_plotly
+
+# --- 4. STAMPA DEI RISULTATI CON CAT ---
+cat("=========================================\n")
+cat("      RISULTATI FRONTE DI SALITA TAU (\u03C4)   \n")
+cat("=========================================\n\n")
+
+cat(">> CURVA REALE (df4m - misurazione)\n")
+cat(sprintf("- Livello ampiezza \u03C4 : %.4f V\n", tau_level_m))
+cat(sprintf("- Istante intersezione : %.4f \u03BCs\n", tau_time_m))
+cat(sprintf("- Costante \u03C4 (\u0394t)    : %.4f \u03BCs\n\n", tau_val_m))
+
+cat(">> CURVA SIMULAZIONE (df4s)\n")
+cat(sprintf("- Livello ampiezza \u03C4 : %.4f V\n", tau_level_s))
+cat(sprintf("- Istante intersezione : %.4f \u03BCs\n", tau_time_s))
+cat(sprintf("- Costante \u03C4 (\u0394t)    : %.4f \u03BCs\n", tau_val_s))
+cat("=========================================\n")
+```
+
+```{r}
+library(plotly)
+library(dplyr)
+library(htmlwidgets)
+library(webshot2)
+
+# Lettura e preparazione dati
+df = read.table("confronto_16.txt", header = T) %>% 
+  mutate(TIME_us = time * 1e6) %>% 
+  select(!time)
+
+# Creazione del grafico nativo con doppio asse
+p1_plotly <- plot_ly(height = 500, width = 700) %>%
+  
+  # Traccia 1 (Vout misurazione -> Usa asse di default a Sinistra)
+  add_lines(data = df, 
+            x = ~TIME_us, 
+            y = ~V.vout., 
+            name = 'Vout controllo tensione', 
+            line = list(color = "blue", width = 1.5)) %>%
+            
+  # Traccia 1.1 (Vin misurazione -> ASSE DESTRO)
+  add_lines(data = df, 
+            x = ~TIME_us, 
+            y = ~V.vout2., 
+            name = 'Vout controllo corrente', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "red", width = 1.5)) %>%
+            
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = "<b>Confronto Simulazione Controllo Tensione vs Controllo Corrente 16 celle</b><br>"
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    
+    # --- CONFIGURAZIONE ASSE SINISTRO (Vout) ---
+    yaxis = list(
+      title = "Ampiezza Vout Controllo Tensione [V]", 
+      gridcolor = "#f0f0f0"
+    ),
+    
+    # --- CONFIGURAZIONE ASSE DESTRO (Vin) ---
+    yaxis2 = list(
+      title = "Ampiezza Vout Controllo Corrente  [V]",
+      overlaying = "y",                  # Fondamentale: sovrappone al primo asse
+      side = "right",                    # Fondamentale: lo mette a destra      
+      showgrid = FALSE                   # Nasconde la griglia di Vin per non incrociarsi
+    ),
+    
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    margin = list(t = 80, b = 120, r = 60), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico su RStudio
+p1_plotly
+
+# ---------------------------------------------------------
+# ESPORTAZIONE IN ALTA RISOLUZIONE
+# ---------------------------------------------------------
+# 1. Salva il grafico interattivo come pagina web temporanea
+saveWidget(p1_plotly, "temp_plot.html")
+
+# 2. Usa webshot2 per fotografare la pagina web
+webshot("temp_plot.html", file = "confronto_currentmode_voltagemode_8_SiPM.png", zoom = 2)
+
+# Cancella il file html temporaneo
+file.remove("temp_plot.html")
+
+
+# ---------------------------------------------------------
+# CALCOLO E STAMPA DI t_rise E t_fall
+# ---------------------------------------------------------
+
+# Funzione per calcolare i tempi su un array di dati
+calcola_tempi <- function(time_vec, v_vec) {
+  # 1. Trova base, picco e ampiezza
+  v_min <- min(v_vec)
+  v_max <- max(v_vec)
+  amp <- v_max - v_min
+  
+  # 2. Definisci le soglie (10% e 90%)
+  th_10 <- v_min + 0.1 * amp
+  th_90 <- v_min + 0.9 * amp
+  
+  # 3. Trova l'indice del picco massimo
+  idx_peak <- which.max(v_vec)
+  
+  # --- RISE TIME (prima del picco) ---
+  # Cerchiamo l'ultimo punto prima del picco in cui il segnale era sotto il 10%
+  idx_10_rise <- tail(which(v_vec[1:idx_peak] <= th_10), 1)
+  # Cerchiamo il primo punto dopo il 10% in cui supera il 90%
+  idx_90_rise <- head(which(v_vec[idx_10_rise:idx_peak] >= th_90), 1) + idx_10_rise - 1
+  
+  t_rise <- time_vec[idx_90_rise] - time_vec[idx_10_rise]
+  
+  # --- FALL TIME (dopo il picco) ---
+  # Analizziamo solo i dati dal picco in poi
+  v_post_peak <- v_vec[idx_peak:length(v_vec)]
+  
+  # Cerchiamo il primo punto in cui scende sotto il 90%
+  idx_90_fall <- head(which(v_post_peak <= th_90), 1) + idx_peak - 1
+  # Cerchiamo il primo punto in cui scende sotto il 10%
+  idx_10_fall <- head(which(v_post_peak <= th_10), 1) + idx_peak - 1
+  
+  # Gestione di sicurezza: se la simulazione finisce prima che il segnale torni al 10%
+  if(length(idx_10_fall) == 0) {
+    t_fall <- NA
+  } else {
+    t_fall <- time_vec[idx_10_fall] - time_vec[idx_90_fall]
+  }
+  
+  return(list(t_rise = t_rise, t_fall = t_fall))
+}
+
+# Calcolo per il segnale in Tensione (V.vout.)
+tempi_v <- calcola_tempi(df$TIME_us, df$V.vout.)
+
+# Calcolo per il segnale in Corrente (V.vout2.)
+tempi_i <- calcola_tempi(df$TIME_us, df$V.vout2.)
+
+# Stampa a schermo i risultati formattati
+cat("\n======================================================\n")
+cat("RISULTATI MISURAZIONI TEMPORALI (in microsecondi)\n")
+cat("======================================================\n\n")
+
+cat("Controllo Tensione (V.vout.):\n")
+cat(sprintf(" - Tempo di salita (10%% -> 90%%) : %.5f us\n", tempi_v$t_rise))
+if(is.na(tempi_v$t_fall)) {
+  cat(" - Tempo di discesa (90%% -> 10%%): [Segnale troncato prima del 10%]\n")
+} else {
+  cat(sprintf(" - Tempo di discesa (90%% -> 10%%): %.5f us\n", tempi_v$t_fall))
+}
+
+cat("\nControllo Corrente (V.vout2.):\n")
+cat(sprintf(" - Tempo di salita (10%% -> 90%%) : %.5f us\n", tempi_i$t_rise))
+if(is.na(tempi_i$t_fall)) {
+  cat(" - Tempo di discesa (90%% -> 10%%): [Segnale troncato prima del 10%]\n")
+} else {
+  cat(sprintf(" - Tempo di discesa (90%% -> 10%%): %.5f us\n", tempi_i$t_fall))
+}
+cat("======================================================\n")
+```
+
+
+```{r}
+library(plotly)
+library(dplyr)
+library(htmlwidgets)
+library(webshot2)
+
+# Lettura e preparazione dati
+df = read.table("confronto_8.txt", header = T) %>% 
+  mutate(TIME_us = time * 1e6) %>% 
+  select(!time)
+
+# Creazione del grafico nativo con doppio asse
+p1_plotly <- plot_ly(height = 500, width = 700) %>%
+  
+  # Traccia 1 (Vout misurazione -> Usa asse di default a Sinistra)
+  add_lines(data = df, 
+            x = ~TIME_us, 
+            y = ~V.vout., 
+            name = 'Vout controllo tensione', 
+            line = list(color = "blue", width = 1.5)) %>%
+            
+  # Traccia 1.1 (Vin misurazione -> ASSE DESTRO)
+  add_lines(data = df, 
+            x = ~TIME_us, 
+            y = ~V.vout2., 
+            name = 'Vout controllo corrente', 
+            yaxis = "y2",    # <--- Collega questa traccia al secondo asse
+            line = list(color = "red", width = 1.5)) %>%
+            
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = "<b>Confronto Simulazione Controllo Tensione vs Controllo Corrente 8 celle</b><br>"
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    
+    # --- CONFIGURAZIONE ASSE SINISTRO (Vout) ---
+    yaxis = list(
+      title = "Ampiezza Vout Controllo Tensione [V]", 
+      gridcolor = "#f0f0f0"
+    ),
+    
+    # --- CONFIGURAZIONE ASSE DESTRO (Vin) ---
+    yaxis2 = list(
+      title = "Ampiezza Vout Controllo Corrente  [V]",
+      overlaying = "y",                  # Fondamentale: sovrappone al primo asse
+      side = "right",                    # Fondamentale: lo mette a destra      
+      showgrid = FALSE                   # Nasconde la griglia di Vin per non incrociarsi
+    ),
+    
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    margin = list(t = 80, b = 120, r = 60), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico su RStudio
+p1_plotly
+
+# ---------------------------------------------------------
+# ESPORTAZIONE IN ALTA RISOLUZIONE
+# ---------------------------------------------------------
+# 1. Salva il grafico interattivo come pagina web temporanea
+saveWidget(p1_plotly, "temp_plot.html")
+
+# 2. Usa webshot2 per fotografare la pagina web
+webshot("temp_plot.html", file = "confronto_currentmode_voltagemode_8_SiPM.png", zoom = 2)
+
+# Cancella il file html temporaneo
+file.remove("temp_plot.html")
+
+
+# ---------------------------------------------------------
+# CALCOLO E STAMPA DI t_rise E t_fall
+# ---------------------------------------------------------
+
+# Funzione per calcolare i tempi su un array di dati
+calcola_tempi <- function(time_vec, v_vec) {
+  # 1. Trova base, picco e ampiezza
+  v_min <- min(v_vec)
+  v_max <- max(v_vec)
+  amp <- v_max - v_min
+  
+  # 2. Definisci le soglie (10% e 90%)
+  th_10 <- v_min + 0.1 * amp
+  th_90 <- v_min + 0.9 * amp
+  
+  # 3. Trova l'indice del picco massimo
+  idx_peak <- which.max(v_vec)
+  
+  # --- RISE TIME (prima del picco) ---
+  # Cerchiamo l'ultimo punto prima del picco in cui il segnale era sotto il 10%
+  idx_10_rise <- tail(which(v_vec[1:idx_peak] <= th_10), 1)
+  # Cerchiamo il primo punto dopo il 10% in cui supera il 90%
+  idx_90_rise <- head(which(v_vec[idx_10_rise:idx_peak] >= th_90), 1) + idx_10_rise - 1
+  
+  t_rise <- time_vec[idx_90_rise] - time_vec[idx_10_rise]
+  
+  # --- FALL TIME (dopo il picco) ---
+  # Analizziamo solo i dati dal picco in poi
+  v_post_peak <- v_vec[idx_peak:length(v_vec)]
+  
+  # Cerchiamo il primo punto in cui scende sotto il 90%
+  idx_90_fall <- head(which(v_post_peak <= th_90), 1) + idx_peak - 1
+  # Cerchiamo il primo punto in cui scende sotto il 10%
+  idx_10_fall <- head(which(v_post_peak <= th_10), 1) + idx_peak - 1
+  
+  # Gestione di sicurezza: se la simulazione finisce prima che il segnale torni al 10%
+  if(length(idx_10_fall) == 0) {
+    t_fall <- NA
+  } else {
+    t_fall <- time_vec[idx_10_fall] - time_vec[idx_90_fall]
+  }
+  
+  return(list(t_rise = t_rise, t_fall = t_fall))
+}
+
+# Calcolo per il segnale in Tensione (V.vout.)
+tempi_v <- calcola_tempi(df$TIME_us, df$V.vout.)
+
+# Calcolo per il segnale in Corrente (V.vout2.)
+tempi_i <- calcola_tempi(df$TIME_us, df$V.vout2.)
+
+# Stampa a schermo i risultati formattati
+cat("\n======================================================\n")
+cat("RISULTATI MISURAZIONI TEMPORALI (in microsecondi)\n")
+cat("======================================================\n\n")
+
+cat("Controllo Tensione (V.vout.):\n")
+cat(sprintf(" - Tempo di salita (10%% -> 90%%) : %.5f us\n", tempi_v$t_rise))
+if(is.na(tempi_v$t_fall)) {
+  cat(" - Tempo di discesa (90%% -> 10%%): [Segnale troncato prima del 10%]\n")
+} else {
+  cat(sprintf(" - Tempo di discesa (90%% -> 10%%): %.5f us\n", tempi_v$t_fall))
+}
+
+cat("\nControllo Corrente (V.vout2.):\n")
+cat(sprintf(" - Tempo di salita (10%% -> 90%%) : %.5f us\n", tempi_i$t_rise))
+if(is.na(tempi_i$t_fall)) {
+  cat(" - Tempo di discesa (90%% -> 10%%): [Segnale troncato prima del 10%]\n")
+} else {
+  cat(sprintf(" - Tempo di discesa (90%% -> 10%%): %.5f us\n", tempi_i$t_fall))
+}
+cat("======================================================\n")
+```
+
+
+

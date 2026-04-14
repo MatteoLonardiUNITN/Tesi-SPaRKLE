@@ -1,0 +1,4 @@
+currentmode: circuito con controllo in corrente
+sipm_quivalente_controllo_tensione
+voltagemode_exp: circuito con SiPM equivalente con generatore .EXP
+voltagemode: circuito con SiPM equivalente con generatore .PULSE

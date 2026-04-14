@@ -1,0 +1,1293 @@
+---
+title: "Regressione Esponenziale"
+author: "Matteo Lonardi"
+date: "2026-03-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(scales) # Per gestire meglio le scale dei grafici
+library(plotly)
+library(tidyverse)
+library(modelr)
+library(minpack.lm)
+```
+
+Importo i dati
+
+```{r}
+
+df <- read.table("dati.csv", header = T, sep = ",") %>% mutate(TIME_us = TIME * 1e6)
+
+df %>% head(5)
+```
+
+Plot dati originali
+
+```{r}
+fig1 <- plot_ly(df, x = ~TIME_us, y = ~CH1, type = 'scatter', mode = 'lines',
+                line = list(color = 'blue', width = 1), name = 'Segnale Raw') %>%
+  layout(title = "1. Segnale Acquisito (Raw Data)",
+         xaxis = list(title = "Tempo [µs]"),
+         yaxis = list(title = "Ampiezza [V]"))
+
+# Visualizza il primo grafico
+fig1
+```
+
+Pulisco i dati
+
+```{r}
+
+peak_info <- df %>% filter(CH1 == max(CH1)) %>% head(1)
+t_peak <- peak_info$TIME_us
+v_peak <- peak_info$CH1
+
+df1 <- df %>%
+  filter(TIME_us >= t_peak) %>%
+  mutate(t_rel = TIME_us - t_peak)
+
+df1%>% head(5)
+```
+
+Secondo plot pulito per la regressione
+
+```{r}
+fig2 <- plot_ly(df1, x = ~TIME_us, y = ~CH1, type = 'scatter', mode = 'lines',
+                line = list(color = 'blue', width = 1), name = 'Segnale Raw') %>%
+  layout(title = "1. Segnale Acquisito (Raw Data)",
+         xaxis = list(title = "Tempo [µs]"),
+         yaxis = list(title = "Ampiezza [V]"))
+
+# Visualizza il primo grafico
+fig2
+```
+
+Regressione un esponenziale
+
+```{r}
+fit <- nls(CH1 ~ A * exp(-t_rel / tau) + Offset, 
+           data = df1, 
+           start = list(A = v_peak, tau = 1.8, Offset = 0.01))
+
+cat("\n--- PARAMETRI DELLA REGRESSIONE ---\n")
+params <- summary(fit)$parameters
+print(params)
+```
+Estraggo i parametri
+
+```{r}
+A_fit <- coef(fit)["A"]
+tau_fit <- coef(fit)["tau"]
+off_fit <- coef(fit)["Offset"]
+
+cat(sprintf("\nCostante di tempo (tau): %.3f µs", tau_fit))
+cat(sprintf("\nAmpiezza (A): %.3f V", A_fit))
+cat(sprintf("\nOffset: %.3f V\n", off_fit))
+```
+Regressione vs Dati
+
+```{r}
+df1$predizione <- predict(fit)
+
+# Creazione del grafico nativo
+p2_plotly <- plot_ly(df1, x = ~TIME_us) %>%
+  # Traccia dei dati reali
+  add_lines(y = ~CH1, 
+            name = 'Dati Sperimentali', 
+            line = list(color = 'blue', width = 1)) %>%
+  # Traccia della regressione (linea tratteggiata)
+  add_lines(y = ~predizione, 
+            name = 'Fit Esponenziale', 
+            line = list(color = 'red', width = 5, dash = 'dash')) %>%
+  # Layout e titoli
+  layout(
+    title = list(
+      text = paste0("<b>2. Analisi del Decadimento (Regressione)</b><br>",
+                    "<sup>Modello: V(t) = A * e^(-t/tau) + Offset | Tau stimato: ", 
+                    round(tau_fit, 3), " µs</sup>")
+    ),
+    xaxis = list(title = "Tempo [µs]"),
+    yaxis = list(title = "Ampiezza [V]"),
+    legend = list(orientation = 'h', x = 0.5, xanchor = 'center', y = -0.2),
+    margin = list(t = 70) # Spazio per il sottotitolo
+  )
+
+p2_plotly
+```
+
+```{r}
+df1 %>% add_residuals(fit) %>% ggplot(aes(x=TIME_us, y=resid))+geom_point()
+```
+```{r}
+df1 %>% add_residuals(fit) %>% ggplot(aes(sample=resid)) + geom_qq()+geom_qq_line(color="red")
+```
+
+Regressione a due esponenziale
+
+```{r}
+fit2 <- nls(CH1 ~ A1 * exp(-t_rel / tau1) + A2 * exp(-t_rel / tau2)+ Offset, 
+           data = df1, 
+           start = list(A1 = v_peak, tau1 = 1.8, A2 = 1, tau2 = 1, Offset = 0.01))
+
+cat("\n--- PARAMETRI DELLA REGRESSIONE ---\n")
+params <- summary(fit2)$parameters
+print(params)
+```
+
+```{r}
+df1$predizione2 <- predict(fit2)
+
+# Creazione del grafico nativo
+p3_plotly <- plot_ly(df1, x = ~TIME_us) %>%
+  # Traccia dei dati reali
+  add_lines(y = ~CH1, 
+            name = 'Dati Sperimentali', 
+            line = list(color = "#EDAE49", width = 1)) %>%
+  # Traccia della regressione (linea tratteggiata)
+  add_lines(y = ~predizione, 
+            name = 'Fit Esponenziale', 
+            line = list(color = '#d1495b', width = 3, dash = 'dash')) %>%
+  # Traccia della regressione (linea tratteggiata)
+  add_lines(y = ~predizione2, 
+            name = 'Fit Doppio Esponenziale', 
+            line = list(color = '#00798c', width = 3, dash = 'dash')) %>%
+  # Layout e titoli
+  layout(
+    title = list(
+      text = paste0("<b>2. Analisi del Decadimento (Regressione)</b><br>",
+                    "<sup>Modello: V(t) = A1 * e^(-t/tau1) + A2 * e^(-t/tau2) Offset | Tau stimato: ", 
+                    round(tau_fit, 3), " µs</sup>")
+    ),
+    xaxis = list(title = "Tempo [µs]"),
+    yaxis = list(title = "Ampiezza [V]"),
+    legend = list(orientation = 'h', x = 0.5, xanchor = 'center', y = -0.2),
+    margin = list(t = 70) # Spazio per il sottotitolo
+  )
+
+p3_plotly
+```
+
+```{r}
+df1 %>% add_residuals(fit2) %>% ggplot(aes(x=TIME_us, y=resid))+geom_point()
+(df1 %>% add_residuals(fit2)%>% head(5))
+```
+
+```{r}
+df1 %>% add_residuals(fit2) %>% ggplot(aes(sample=resid)) + geom_qq()+geom_qq_line(color="red")
+```
+
+Importo dati delle misure del 13/03/2026
+
+```{r}
+#sovrascrivo i dataframe precedenti
+
+df1 = read.table("no_sipm_gradino_ext.csv", header = T, sep = ",")%>% mutate(TIME_us = TIME * 1e6)
+df2 = read.table("sipm_gradino_ext_bias_26V_1.csv", header = T, sep = ",")%>% mutate(TIME_us = TIME * 1e6)
+df3 = read.table("sipm_gradino_ext_bias_26V_2.csv", header = T, sep = ",")%>% mutate(TIME_us = TIME * 1e6)
+df4 = read.table("sipm_gradino_ext_bias_0V.csv", header = T, sep = ",")%>% mutate(TIME_us = TIME * 1e6)
+df5 = read.table("sipm_alpha_bias_32V_1.csv", header = T, sep = ",")%>% mutate(TIME_us = TIME * 1e6)
+df6 = read.table("sipm_alpha_bias_32V_2.csv", header = T, sep = ",")%>% mutate(TIME_us = TIME * 1e6)
+df7 = read.table("sipm_alpha_bias_32V_3.csv", header = T, sep = ",")%>% mutate(TIME_us = TIME * 1e6)
+df8 = read.table("sipm_alpha_bias_32V_4.csv", header = T, sep = ",")%>% mutate(TIME_us = TIME * 1e6)
+df9 = read.table("sipm_beta_bias_32V_1.csv", header = T, sep = ",")%>% mutate(TIME_us = TIME * 1e6)
+df10 = read.table("sipm_beta_bias_32V_2.csv", header = T, sep = ",")%>% mutate(TIME_us = TIME * 1e6)
+df11 = read.table("sipm_beta_bias_32V_3.csv", header = T, sep = ",")%>% mutate(TIME_us = TIME * 1e6)
+df12 = read.table("sipm_beta_bias_32V_4.csv", header = T, sep = ",")%>% mutate(TIME_us = TIME * 1e6)
+df13 = read.table("sipm_beta_bias_32V_5.csv", header = T, sep = ",")%>% mutate(TIME_us = TIME * 1e6)
+df14 = read.table("sipm_beta_bias_32V_6.csv", header = T, sep = ",")%>% mutate(TIME_us = TIME * 1e6)
+
+df%>%head(5)
+```
+
+plot delle caratteristiche
+
+```{r}
+# Creazione del grafico nativo con sovrapposizione corretta
+p4_plotly <- plot_ly() %>%
+  
+  # Traccia 1
+  add_lines(data = df1, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Segnale Completo (No SiPM)', 
+            line = list(color = "#219ebc", width = 1.5)) %>%
+  
+  # Traccia 2
+  add_lines(data = df2, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Dati Decadimento 1 (Con SiPM) e Vbias = 26V', 
+            line = list(color = '#023047', width = 1.5)) %>%
+  # Traccia 3
+  add_lines(data = df3, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Dati Decadimento 2 (Con SiPM) e Vbias = 26V', 
+            line = list(color = '#ffb703', width = 1.5)) %>%
+  # Traccia 4
+  add_lines(data = df4, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Dati Decadimento (Con SiPM) e Vbias = 0V', 
+            line = list(color = '#fb8500', width = 1.5)) %>%
+  
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = paste0("<b>Confronto Impulsi: Circuito con e senza SiPM</b><br>")
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    yaxis = list(title = "Ampiezza [V]", gridcolor = "#f0f0f0"),
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.35            
+    ),
+    margin = list(t = 80, b = 120), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p4_plotly
+```
+
+Plot delle misure con particelle alpha
+
+```{r}
+# Creazione del grafico nativo con sovrapposizione corretta
+p5_plotly <- plot_ly() %>%
+  
+  # Traccia 1
+  add_lines(data = df5, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle alpha 1', 
+            line = list(color = "#dabfff", width = 1.5)) %>%
+  
+  # Traccia 2
+  add_lines(data = df6, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle alpha 2', 
+            line = list(color = '#907ad6', width = 1.5)) %>%
+  # Traccia 3
+  add_lines(data = df7, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle alpha 3', 
+            line = list(color = '#4f518c', width = 1.5)) %>%
+  # Traccia 4
+  add_lines(data = df8, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle alpha 4', 
+            line = list(color = '#2c2a4a', width = 1.5)) %>%
+  
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = paste0("<b>Confronto Impulsi con particelle alpha</b><br>")
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    yaxis = list(title = "Ampiezza [V]", gridcolor = "#f0f0f0"),
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.35            
+    ),
+    margin = list(t = 80, b = 120), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p5_plotly
+```
+
+Plot delle misure con particelle beta
+
+```{r}
+# Creazione del grafico nativo con sovrapposizione corretta
+p6_plotly <- plot_ly() %>%
+  
+  # Traccia 1
+  add_lines(data = df9, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 1', 
+            line = list(color = "#01befe", width = 1.5)) %>%
+  
+  # Traccia 2
+  add_lines(data = df10, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 2', 
+            line = list(color = '#ffdd00', width = 1.5)) %>%
+  # Traccia 3
+  add_lines(data = df11, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 3', 
+            line = list(color = '#ff7d00', width = 1.5)) %>%
+  # Traccia 4
+  add_lines(data = df12, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 4', 
+            line = list(color = '#ff006d', width = 1.5)) %>%
+  # Traccia 5
+  add_lines(data = df13, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 5', 
+            line = list(color = '#adff02', width = 1.5)) %>%
+  # Traccia 6
+  add_lines(data = df14, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 6', 
+            line = list(color = '#8f00ff', width = 1.5)) %>%
+  
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = paste0("<b>Confronto Impulsi con particelle beta</b><br>")
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    yaxis = list(title = "Ampiezza [V]", gridcolor = "#f0f0f0"),
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.35            
+    ),
+    margin = list(t = 80, b = 120), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p6_plotly
+```
+
+
+#Regressioni a doppio esponenziale da diagrammi con gradino esterno
+
+```{r}
+df1 <- df1 %>%
+  filter(TIME_us >= 3.9) %>%
+  mutate(t_rel = TIME_us - 3.9)
+
+df1%>% head(5)
+
+df2 <- df2 %>%
+  filter(TIME_us >= 6.1) %>%
+  mutate(t_rel = TIME_us - 6.1)
+
+df2%>% head(5)
+
+df3 <- df3 %>%
+  filter(TIME_us >= 6.1) %>%
+  mutate(t_rel = TIME_us - 6.1)
+
+df3%>% head(5)
+
+df4 <- df4 %>%
+  filter(TIME_us >= 12.4) %>%
+  mutate(t_rel = TIME_us - 12.4)
+
+df4%>% head(5)
+```
+
+```{r}
+# Creazione del grafico nativo con sovrapposizione corretta
+p4_plotly <- plot_ly() %>%
+  
+  # Traccia 1
+  add_lines(data = df1, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Segnale Completo (No SiPM)', 
+            line = list(color = "#219ebc", width = 1.5)) %>%
+  
+  # Traccia 2
+  add_lines(data = df2, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Dati Decadimento 1 (Con SiPM) e Vbias = 26V', 
+            line = list(color = '#023047', width = 1.5)) %>%
+  # Traccia 3
+  add_lines(data = df3, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Dati Decadimento 2 (Con SiPM) e Vbias = 26V', 
+            line = list(color = '#ffb703', width = 1.5)) %>%
+  # Traccia 4
+  add_lines(data = df4, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Dati Decadimento (Con SiPM) e Vbias = 0V', 
+            line = list(color = '#fb8500', width = 1.5)) %>%
+  
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = paste0("<b>Confronto Impulsi: Circuito con e senza SiPM</b><br>")
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    yaxis = list(title = "Ampiezza [V]", gridcolor = "#f0f0f0"),
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.35            
+    ),
+    margin = list(t = 80, b = 120), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p4_plotly
+```
+
+Regressione a due esponenziale
+
+```{r}
+fitg1 <- nlsLM(CH1 ~ A1 * exp(-t_rel / tau1) + A2 * exp(-t_rel / tau2) + Offset, 
+               data = df1, 
+               start = list(A1 = 1.5, tau1 = 5, A2 = 0.5, tau2 = 2.0, Offset = 0.01),
+               control = nls.control(maxiter = 1000))
+
+fitg2 <- nlsLM(CH1 ~ A1 * exp(-t_rel / tau1) + A2 * exp(-t_rel / tau2) + Offset, 
+               data = df2, 
+               start = list(A1 = 1.5, tau1 = 5, A2 = 0.5, tau2 = 2.0, Offset = 0.01),
+               control = nls.control(maxiter = 1000))
+
+fitg3 <- nlsLM(CH1 ~ A1 * exp(-t_rel / tau1) + A2 * exp(-t_rel / tau2) + Offset, 
+               data = df3, 
+               start = list(A1 = 1.5, tau1 = 5, A2 = 0.5, tau2 = 2.0, Offset = 0.01),
+               control = nls.control(maxiter = 1000))
+
+fitg4 <- nlsLM(CH1 ~ A1 * exp(-t_rel / tau1) + A2 * exp(-t_rel / tau2) + Offset, 
+               data = df4, 
+               start = list(A1 = 2, tau1 = 10, A2 = 0.5, tau2 = 1, Offset = 0.1),
+               control = nls.control(maxiter = 1000))
+cat("\n--- PARAMETRI DELLA REGRESSIONE DATI SENZA SIPM ---\n")
+params <- summary(fitg1)$parameters
+print(params)
+cat("\n--- PARAMETRI DELLA REGRESSIONE DATI 1 CON SIPM E Vbias = 26V---\n")
+params <- summary(fitg2)$parameters
+print(params)
+cat("\n--- PARAMETRI DELLA REGRESSIONE DATI CON SIPM E Vbias = 0V---\n")
+params <- summary(fitg3)$parameters
+print(params)
+cat("\n--- PARAMETRI DELLA REGRESSIONE DATI 2 CON SIPM E Vbias = 26V---\n")
+params <- summary(fitg4)$parameters
+print(params)
+
+```
+Regressione vs dati reali
+
+```{r}
+df1$predizione <- predict(fitg1)
+df2$predizione <- predict(fitg2)
+df3$predizione <- predict(fitg3)
+df4$predizione <- predict(fitg4)
+
+# Creazione del grafico nativo con sovrapposizione corretta
+p4_plotly <- plot_ly(height = 700, width = 700) %>%
+  
+  # Traccia 1
+  add_lines(data = df1, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Segnale Completo (No SiPM)', 
+            line = list(color = "#ff0c72", width = 1.5)) %>%
+  # Traccia 1.1
+  add_lines(data = df1, 
+            x = ~TIME_us, 
+            y = ~predizione, 
+            name = 'Regressione Segnale Completo (No SiPM)', 
+            line = list(color = "#ff21c1", width = 1.5)) %>%
+  
+  # Traccia 2
+  add_lines(data = df2, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Dati Decadimento 1 (Con SiPM) e Vbias = 26V', 
+            line = list(color = '#ac11ff', width = 1.5)) %>%
+  # Traccia 2.1
+  add_lines(data = df2, 
+            x = ~TIME_us, 
+            y = ~predizione, 
+            name = 'Regressione Dati Decadimento 1 (Con SiPM) e Vbias = 26V', 
+            line = list(color = "#ffb72a", width = 1.5)) %>%
+  # Traccia 3
+  add_lines(data = df3, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Dati Decadimento 2 (Con SiPM) e Vbias = 26V', 
+            line = list(color = '#ffd900', width = 1.5)) %>%
+  # Traccia 3.1
+  add_lines(data = df3, 
+            x = ~TIME_us, 
+            y = ~predizione, 
+            name = 'Regressione Dati Decadimento 1 (Con SiPM) e Vbias = 26V', 
+            line = list(color = "#f88200", width = 1.5)) %>%
+  # Traccia 4
+  add_lines(data = df4, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Dati Decadimento (Con SiPM) e Vbias = 0V', 
+            line = list(color = '#009cff', width = 1.5)) %>%
+  # Traccia 4.1
+  add_lines(data = df4, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Regressione Dati Decadimento (Con SiPM) e Vbias = 0V', 
+            line = list(color = '#31c6ff', width = 1.5)) %>%
+  
+  
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = paste0("<b>Confronto Impulsi: Circuito con e senza SiPM</b><br>")
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    yaxis = list(title = "Ampiezza [V]", gridcolor = "#f0f0f0"),
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    margin = list(t = 80, b = 120), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p4_plotly
+```
+
+#Proseguo con la regressione dei dati con particelle alpha
+
+```{r}
+df5 <- df5 %>%
+  filter(TIME_us >= 0.47) %>%
+  mutate(t_rel = TIME_us - 0.47)
+
+df5%>% head(5)
+
+df6 <- df6 %>%
+  filter(TIME_us >= 0.76) %>%
+  mutate(t_rel = TIME_us - 0.76)
+
+df6%>% head(5)
+
+df7 <- df7 %>%
+  filter(TIME_us >= 0.38) %>%
+  mutate(t_rel = TIME_us - 0.38)
+
+df7%>% head(5)
+
+df8 <- df8 %>%
+  filter(TIME_us >= 0.7) %>%
+  mutate(t_rel = TIME_us - 0.7)
+
+df8%>% head(5)
+```
+
+```{r}
+# Creazione del grafico nativo con sovrapposizione corretta
+p5_plotly <- plot_ly() %>%
+  
+  # Traccia 1
+  add_lines(data = df5, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle alpha 1', 
+            line = list(color = "#dabfff", width = 1.5)) %>%
+  
+  # Traccia 2
+  add_lines(data = df6, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle alpha 2', 
+            line = list(color = '#907ad6', width = 1.5)) %>%
+  # Traccia 3
+  add_lines(data = df7, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle alpha 3', 
+            line = list(color = '#4f518c', width = 1.5)) %>%
+  # Traccia 4
+  add_lines(data = df8, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle alpha 4', 
+            line = list(color = '#2c2a4a', width = 1.5)) %>%
+  
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = paste0("<b>Confronto Impulsi con particelle alpha con solo il fronte di discesa</b><br>")
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    yaxis = list(title = "Ampiezza [V]", gridcolor = "#f0f0f0"),
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.35            
+    ),
+    margin = list(t = 80, b = 120), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p5_plotly
+```
+
+Regressione a due esponenziale
+
+```{r}
+fita1 <- nlsLM(CH1 ~ A1 * exp(-t_rel / tau1) + A2 * exp(-t_rel / tau2) + Offset, 
+               data = df5, 
+               start = list(A1 = 1.5, tau1 = 5, A2 = 0.5, tau2 = 2.0, Offset = 0.01),
+               control = nls.control(maxiter = 1000))
+
+fita2 <- nlsLM(CH1 ~ A1 * exp(-t_rel / tau1) + A2 * exp(-t_rel / tau2) + Offset, 
+               data = df6, 
+               start = list(A1 = 1.5, tau1 = 5, A2 = 0.5, tau2 = 2.0, Offset = 0.01),
+               control = nls.control(maxiter = 1000))
+
+fita3 <- nlsLM(CH1 ~ A1 * exp(-t_rel / tau1) + A2 * exp(-t_rel / tau2) + Offset, 
+               data = df7, 
+               start = list(A1 = 1, tau1 = 1, A2 = 0.5, tau2 = 2.0, Offset = 0.01),
+               control = nls.control(maxiter = 1000))
+
+fita4 <- nlsLM(CH1 ~ A1 * exp(-t_rel / tau1) + A2 * exp(-t_rel / tau2) + Offset, 
+               data = df8, 
+               start = list(A1 = 2, tau1 = 10, A2 = 0.5, tau2 = 1, Offset = 0.1),
+               control = nls.control(maxiter = 1000))
+cat("\n--- PARAMETRI DELLA REGRESSIONE DATI SENZA SIPM ---\n")
+params <- summary(fita1)$parameters
+print(params)
+cat("\n--- PARAMETRI DELLA REGRESSIONE DATI 1 CON SIPM E Vbias = 26V---\n")
+params <- summary(fita2)$parameters
+print(params)
+cat("\n--- PARAMETRI DELLA REGRESSIONE DATI CON SIPM E Vbias = 0V---\n")
+params <- summary(fita3)$parameters
+print(params)
+cat("\n--- PARAMETRI DELLA REGRESSIONE DATI 2 CON SIPM E Vbias = 26V---\n")
+params <- summary(fita4)$parameters
+print(params)
+
+```
+Regressione vs dati reali
+
+```{r}
+df5$predizione <- predict(fita1)
+df6$predizione <- predict(fita2)
+df7$predizione <- predict(fita3)
+df8$predizione <- predict(fita4)
+
+# Creazione del grafico nativo con sovrapposizione corretta
+p5_plotly <- plot_ly(height = 700, width = 700) %>%
+  
+  # Traccia 1
+  add_lines(data = df5, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle alpha 1', 
+            line = list(color = "#4c6085", width = 1.5)) %>%
+  # Traccia 1.1
+  add_lines(data = df5, 
+            x = ~TIME_us, 
+            y = ~predizione, 
+            name = 'Regressione SiPM con partielle alpha 1', 
+            line = list(color = "#39a0ed", width = 1.5)) %>%
+  
+  # Traccia 2
+  add_lines(data = df6, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle alpha 2', 
+            line = list(color = '#36f1cd', width = 1.5)) %>%
+  # Traccia 2.1
+  add_lines(data = df6, 
+            x = ~TIME_us, 
+            y = ~predizione, 
+            name = 'Regressione SiPM con partielle alpha 2', 
+            line = list(color = "#13c4a3", width = 1.5)) %>%
+  # Traccia 3
+  add_lines(data = df7, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle alpha 3', 
+            line = list(color = '#f7b32b', width = 1.5)) %>%
+  # Traccia 3.1
+  add_lines(data = df7, 
+            x = ~TIME_us, 
+            y = ~predizione, 
+            name = 'Regressione SiPM con partielle alpha 3', 
+            line = list(color = "#fe5f55", width = 1.5)) %>%
+  # Traccia 4
+  add_lines(data = df8, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle alpha 4', 
+            line = list(color = '#e4572e', width = 1.5)) %>%
+  # Traccia 4.1
+  add_lines(data = df8, 
+            x = ~TIME_us, 
+            y = ~predizione, 
+            name = 'Regressione SiPM con partielle alpha 4', 
+            line = list(color = '#161613', width = 1.5)) %>%
+  
+  
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = paste0("<b>Confronto Fronti di discesa: Particelle alpha</b><br>")
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    yaxis = list(title = "Ampiezza [V]", gridcolor = "#f0f0f0"),
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    margin = list(t = 80, b = 120), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p5_plotly
+```
+
+# Regressione particelle beta
+```{r}
+df9 <- df9 %>%
+  filter(TIME_us >= 0.94) %>%
+  mutate(t_rel = TIME_us - 0.94)
+
+df9%>% head(5)
+
+df10 <- df10 %>%
+  filter(TIME_us >= 0.9) %>%
+  mutate(t_rel = TIME_us - 0.9)
+
+df10%>% head(5)
+
+df11 <- df11 %>%
+  filter(TIME_us >= 0.9) %>%
+  mutate(t_rel = TIME_us - 0.9)
+
+df11%>% head(5)
+
+df12 <- df12 %>%
+  filter(TIME_us >= 0) %>%
+  mutate(t_rel = TIME_us - 0)
+
+df12%>% head(5)
+
+df13 <- df13 %>%
+  filter(TIME_us >= 0.3) %>%
+  mutate(t_rel = TIME_us - 0.3)
+
+df13%>% head(5)
+
+df14 <- df14 %>%
+  filter(TIME_us >= 0.9) %>%
+  mutate(t_rel = TIME_us - 0.9)
+
+df14%>% head(5)
+```
+
+```{r}
+# Creazione del grafico nativo con sovrapposizione corretta
+p6_plotly <- plot_ly() %>%
+  
+  # Traccia 1
+  add_lines(data = df9, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 1', 
+            line = list(color = "#01befe", width = 1.5)) %>%
+  
+  # Traccia 2
+  add_lines(data = df10, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 2', 
+            line = list(color = '#ffdd00', width = 1.5)) %>%
+  # Traccia 3
+  add_lines(data = df11, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 3', 
+            line = list(color = '#ff7d00', width = 1.5)) %>%
+  # Traccia 4
+  add_lines(data = df12, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 4', 
+            line = list(color = '#ff006d', width = 1.5)) %>%
+  # Traccia 5
+  add_lines(data = df13, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 5', 
+            line = list(color = '#adff02', width = 1.5)) %>%
+  # Traccia 6
+  add_lines(data = df14, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 6', 
+            line = list(color = '#8f00ff', width = 1.5)) %>%
+  
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = paste0("<b>Confronto Impulsi con particelle beta</b><br>")
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    yaxis = list(title = "Ampiezza [V]", gridcolor = "#f0f0f0"),
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.35            
+    ),
+    margin = list(t = 80, b = 120), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p6_plotly
+```
+
+Regressione a due esponenziale
+
+```{r}
+fitb1 <- nlsLM(CH1 ~ A1 * exp(-t_rel / tau1) + A2 * exp(-t_rel / tau2) + Offset, 
+               data = df9, 
+               start = list(A1 = 1.5, tau1 = 5, A2 = 0.5, tau2 = 2.0, Offset = 0.01),
+               control = nls.control(maxiter = 1000))
+
+fitb2 <- nlsLM(CH1 ~ A1 * exp(-t_rel / tau1) + A2 * exp(-t_rel / tau2) + Offset, 
+               data = df10, 
+               start = list(A1 = 1.5, tau1 = 5, A2 = 0.5, tau2 = 2.0, Offset = 0.01),
+               control = nls.control(maxiter = 1000))
+
+fitb3 <- nlsLM(CH1 ~ A1 * exp(-t_rel / tau1) + A2 * exp(-t_rel / tau2) + Offset, 
+               data = df11, 
+               start = list(A1 = 10, tau1 = 1, A2 = 0.5, tau2 = 2.0, Offset = 0.01),
+               control = nls.control(maxiter = 1000))
+
+fitb4 <- nlsLM(CH1 ~ A1 * exp(-t_rel / tau1) + A2 * exp(-t_rel / tau2) + Offset, 
+               data = df12, 
+               start = list(A1 = 2, tau1 = 10, A2 = 0.5, tau2 = 1, Offset = 0.1),
+               control = nls.control(maxiter = 1000))
+fitb5 <- nlsLM(CH1 ~ A1 * exp(-t_rel / tau1) + A2 * exp(-t_rel / tau2) + Offset, 
+               data = df13, 
+               start = list(A1 = 2, tau1 = 10, A2 = 0.5, tau2 = 1, Offset = 0.1),
+               control = nls.control(maxiter = 1000))
+fitb6 <- nlsLM(CH1 ~ A1 * exp(-t_rel / tau1) + A2 * exp(-t_rel / tau2) + Offset, 
+               data = df14, 
+               start = list(A1 = 10, tau1 = 4, A2 = 5, tau2 = 1, Offset = 0.1),
+               control = nls.control(maxiter = 1000))
+cat("\n--- PARAMETRI DELLA REGRESSIONE DATI CON PARTICELLE BETA 1 ---\n")
+params <- summary(fitb1)$parameters
+print(params)
+cat("\n--- PARAMETRI DELLA REGRESSIONE DATI CON PARTICELLE BETA 2 ---\n")
+params <- summary(fitb2)$parameters
+print(params)
+cat("\n--- PARAMETRI DELLA REGRESSIONE DATI CON PARTICELLE BETA 3 ---\n")
+params <- summary(fitb3)$parameters
+print(params)
+cat("\n--- PARAMETRI DELLA REGRESSIONE DATI CON PARTICELLE BETA 4 ---\n")
+params <- summary(fitb4)$parameters
+print(params)
+cat("\n--- PARAMETRI DELLA REGRESSIONE DATI CON PARTICELLE BETA 5 ---\n")
+params <- summary(fitb5)$parameters
+print(params)
+cat("\n--- PARAMETRI DELLA REGRESSIONE DATI CON PARTICELLE BETA 6---\n")
+params <- summary(fitb6)$parameters
+print(params)
+
+```
+Regressione vs dati reali
+
+```{r}
+df9$predizione <- predict(fitb1)
+df10$predizione <- predict(fitb2)
+df11$predizione <- predict(fitb3)
+df12$predizione <- predict(fitb4)
+df13$predizione <- predict(fitb5)
+df14$predizione <- predict(fitb6)
+# Creazione del grafico nativo con sovrapposizione corretta
+p6_plotly <- plot_ly(height = 700, width = 700) %>%
+  
+  # Traccia 1
+  add_lines(data = df9, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 1', 
+            line = list(color = "#264653", width = 1.5)) %>%
+  # Traccia 1.1
+  add_lines(data = df9, 
+            x = ~TIME_us, 
+            y = ~predizione, 
+            name = 'Regressione SiPM con partielle beta 1', 
+            line = list(color = "#2a9d8f", width = 1.5)) %>%
+  
+  # Traccia 2
+  add_lines(data = df10, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 2', 
+            line = list(color = '#e9c46a', width = 1.5)) %>%
+  # Traccia 2.1
+  add_lines(data = df10, 
+            x = ~TIME_us, 
+            y = ~predizione, 
+            name = 'Regressione SiPM con partielle beta 2', 
+            line = list(color = "#f4a261", width = 1.5)) %>%
+  # Traccia 3
+  add_lines(data = df11, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 3', 
+            line = list(color = '#e76f51', width = 1.5)) %>%
+  # Traccia 3.1
+  add_lines(data = df11, 
+            x = ~TIME_us, 
+            y = ~predizione, 
+            name = 'Regressione SiPM con partielle beta 3', 
+            line = list(color = "#d62828", width = 1.5)) %>%
+  # Traccia 4
+  add_lines(data = df12, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 4', 
+            line = list(color = '#0077b6', width = 1.5)) %>%
+  # Traccia 4.1
+  add_lines(data = df12, 
+            x = ~TIME_us, 
+            y = ~predizione, 
+            name = 'Regressione SiPM con partielle beta 4', 
+            line = list(color = '#90e0ef', width = 1.5)) %>%
+  # Traccia 5
+  add_lines(data = df13, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 5', 
+            line = list(color = '#ff99c8', width = 1.5)) %>%
+  # Traccia 5.1
+  add_lines(data = df13, 
+            x = ~TIME_us, 
+            y = ~predizione, 
+            name = 'Regressione SiPM con partielle alpha 5', 
+            line = list(color = '#b5e48c', width = 1.5)) %>%
+  # Traccia 6
+  add_lines(data = df14, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'SiPM con partielle beta 6', 
+            line = list(color = '#8338ec', width = 1.5)) %>%
+  # Traccia 6.1
+  add_lines(data = df14, 
+            x = ~TIME_us, 
+            y = ~predizione, 
+            name = 'Regressione SiPM con partielle beta 6', 
+            line = list(color = '#333333', width = 1.5)) %>%
+  
+  
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = paste0("<b>Confronto Fronti di discesa: Particelle beta</b><br>")
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    yaxis = list(title = "Ampiezza [V]", gridcolor = "#f0f0f0"),
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    margin = list(t = 80, b = 120), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p6_plotly
+```
+
+REGRESSIONE 1 EXP no sipm + gradino ext
+
+
+```{r}
+df1 = read.table("no_sipm_gradino_ext.csv", header = T, sep = ",")%>% mutate(TIME_us = TIME * 1e6)
+df <- read.table("voltagemode_update.txt", header = T)%>% mutate(TIME_us = time * 1e6)
+df %>% head(5)
+```
+```{r}
+# Creazione del grafico nativo con sovrapposizione corretta
+p6_plotly <- plot_ly(height = 700, width = 700) %>%
+  
+  # Traccia 1
+  add_lines(data = df1, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Reale no SiPM', 
+            line = list(color = "red", width = 1.5)) %>%
+  # Traccia 1.1
+  add_lines(data = df, 
+            x = ~TIME_us, 
+            y = ~V.vout., 
+            name = 'Simulazione', 
+            line = list(color = "black", width = 1.5)) %>%
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = paste0("<b>Confronto Reale e Simulazione</b><br>")
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    yaxis = list(title = "Ampiezza [V]", gridcolor = "#f0f0f0"),
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    margin = list(t = 80, b = 120), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p6_plotly
+```
+
+Abbasso il segnale simulato e sposto a destra il reale  
+
+```{r}
+df1 = df1 %>% mutate(TIME_us = TIME_us+ 2)
+df = df %>% mutate(V.vout. = V.vout.-0.195) 
+```
+
+Plot segnali allineati
+
+```{r}
+# Creazione del grafico nativo con sovrapposizione corretta
+p6_plotly <- plot_ly(height = 700, width = 700) %>%
+  
+  # Traccia 1
+  add_lines(data = df1, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Reale no SiPM', 
+            line = list(color = "red", width = 1.5)) %>%
+  # Traccia 1.1
+  add_lines(data = df, 
+            x = ~TIME_us, 
+            y = ~V.vout., 
+            name = 'Simulazione', 
+            line = list(color = "black", width = 1.5)) %>%
+  
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = paste0("<b>Confronto Reale e Simulazione</b><br>")
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    yaxis = list(title = "Ampiezza [V]", gridcolor = "#f0f0f0"),
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    margin = list(t = 80, b = 120), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p6_plotly
+```
+
+Pulisco i segnali
+
+```{r}
+df1 <- df1 %>%
+  filter(TIME_us >= 6) %>%
+  mutate(t_rel = TIME_us - 6)
+
+df = df %>% filter(time > 6 *1e-6) %>% mutate(TIME_us = time * 1e6)%>%
+  mutate(t_rel = TIME_us - 6)
+```
+Plot
+
+```{r}
+library(plotly)
+
+# --- 1. FUNZIONE DI SUPPORTO PER INTERPOLAZIONE ---
+# Questa funzione trova il tempo esatto in cui il segnale in discesa attraversa tau
+get_tau_time <- function(t, y, tau_level) {
+  idx_max <- which.max(y)
+  
+  # Isola solo la parte della curva dopo il picco massimo (decadimento)
+  decay_y <- y[idx_max:length(y)]
+  decay_t <- t[idx_max:length(t)]
+  
+  # Trova il primo punto in cui il segnale scende sotto il livello tau
+  idx_below <- which(decay_y <= tau_level)[1]
+  
+  # Se non scende mai sotto tau (es. dati tagliati), restituisci NA
+  if(is.na(idx_below)) return(NA)
+  if(idx_below == 1) return(decay_t[1])
+  
+  # Interpolazione lineare tra il punto appena sopra la soglia e quello appena sotto
+  x1 <- decay_t[idx_below - 1]
+  x2 <- decay_t[idx_below]
+  y1 <- decay_y[idx_below - 1]
+  y2 <- decay_y[idx_below]
+  
+  tau_time <- x1 + (tau_level - y1) * (x2 - x1) / (y2 - y1)
+  return(tau_time)
+}
+
+# --- 2. CALCOLO DEI LIVELLI E DEI TEMPI ---
+
+# Valori massimi e livelli tau (36.8% del massimo)
+max_CH1 <- max(df1$CH1, na.rm = TRUE)
+max_sim <- max(df$V.vout., na.rm = TRUE)
+tau_level_CH1 <- max_CH1 * exp(-1)
+tau_level_sim <- max_sim * exp(-1)
+
+# Tempi in cui si verifica il picco massimo
+t_max_CH1 <- df1$TIME_us[which.max(df1$CH1)]
+t_max_sim <- df$TIME_us[which.max(df$V.vout.)]
+
+# Calcolo del tempo esatto di intersezione (coordinata x delle linee verticali)
+tau_time_CH1 <- get_tau_time(df1$TIME_us, df1$CH1, tau_level_CH1)
+tau_time_sim <- get_tau_time(df$TIME_us, df$V.vout., tau_level_sim)
+
+# Calcolo della costante di tempo (Delta t = Tempo a tau - Tempo al massimo)
+tau_val_CH1 <- tau_time_CH1 - t_max_CH1
+tau_val_sim <- tau_time_sim - t_max_sim
+
+# Estremi per le linee del grafico
+x_min <- min(c(df1$TIME_us, df$TIME_us), na.rm = TRUE)
+x_max <- max(c(df1$TIME_us, df$TIME_us), na.rm = TRUE)
+y_min <- min(c(df1$CH1, df$V.vout.), na.rm = TRUE) # Per far partire le linee verticali dal basso
+y_max <- max(c(df1$CH1, df$V.vout.), na.rm = TRUE) # Per far partire le linee verticali dal basso
+# --- 3. CREAZIONE DEL GRAFICO PLOTLY ---
+p6_plotly <- plot_ly(height = 700, width = 700) %>%
+  
+  # Traccia 1: Dati Reali
+  add_lines(data = df1, 
+            x = ~TIME_us, 
+            y = ~CH1, 
+            name = 'Reale no SiPM', 
+            line = list(color = "red", width = 1.5)) %>%
+  
+  # Traccia 1.1: Simulazione
+  add_lines(data = df, 
+            x = ~TIME_us, 
+            y = ~V.vout., 
+            name = 'Simulazione', 
+            line = list(color = "black", width = 1.5)) %>%
+  
+  # ---- Linee per curva REALE (Rosse) ----
+  # Linea orizzontale
+  add_segments(x = x_min, xend = x_max,
+               y = tau_level_CH1, yend = tau_level_CH1,
+               name = 'Livello \u03C4 (Reale)',
+               line = list(color = "red", width = 1, dash = 'dash')) %>%
+  # Linea verticale
+  add_segments(x = tau_time_CH1, xend = tau_time_CH1,
+               y = y_min, yend = y_max,
+               showlegend = FALSE, # Nascondo dalla legenda per non duplicare
+               line = list(color = "red", width = 1, dash = 'dash')) %>%
+  
+  # ---- Linee per curva SIMULAZIONE (Nere) ----
+  # Linea orizzontale
+  add_segments(x = x_min, xend = x_max,
+               y = tau_level_sim, yend = tau_level_sim,
+               name = 'Livello \u03C4 (Simul.)',
+               line = list(color = "black", width = 1, dash = 'dash')) %>%
+  # Linea verticale
+  add_segments(x = tau_time_sim, xend = tau_time_sim,
+               y = y_min, yend = y_max,
+               showlegend = FALSE, 
+               line = list(color = "black", width = 1, dash = 'dash')) %>%
+  
+  # Layout e titoli 
+  layout(
+    title = list(
+      text = paste0("<b>Confronto Reale e Simulazione con decadimento \u03C4</b><br>")
+    ),
+    xaxis = list(title = "Tempo [\u03bc s]", gridcolor = "#f0f0f0"),
+    yaxis = list(title = "Ampiezza [V]", gridcolor = "#f0f0f0"),
+    legend = list(
+      orientation = 'h', 
+      x = 0.5, 
+      xanchor = 'center', 
+      y = -0.3            
+    ),
+    margin = list(t = 80, b = 120), 
+    plot_bgcolor = "white" 
+  )
+
+# Visualizza il grafico
+p6_plotly
+
+# --- 4. STAMPA DEI RISULTATI CON CAT ---
+cat("=========================================\n")
+cat("      RISULTATI DECADIMENTO TAU (\u03C4)     \n")
+cat("=========================================\n\n")
+
+cat(">> CURVA REALE (no SiPM)\n")
+cat(sprintf("- Livello ampiezza \u03C4 : %.4f V\n", tau_level_CH1))
+cat(sprintf("- Istante intersezione : %.4f \u03BCs\n", tau_time_CH1))
+cat(sprintf("- Costante \u03C4 (\u0394t)    : %.4f \u03BCs\n\n", tau_val_CH1))
+
+cat(">> CURVA SIMULAZIONE\n")
+cat(sprintf("- Livello ampiezza \u03C4 : %.4f V\n", tau_level_sim))
+cat(sprintf("- Istante intersezione : %.4f \u03BCs\n", tau_time_sim))
+cat(sprintf("- Costante \u03C4 (\u0394t)    : %.4f \u03BCs\n", tau_val_sim))
+cat("=========================================\n")
+
+cat(tau_time_CH1, tau_time_sim)
+```
+
+Regressioni
+
+```{r}
+fit1 <- nls(CH1 ~ A * exp(-t_rel / tau) + Offset, 
+           data = df1, 
+           start = list(A = 1, tau = 1, Offset = 0.01))
+
+cat("\n--- PARAMETRI DELLA REGRESSIONE  GRADINO EXT---\n")
+params <- summary(fit1)$parameters
+print(params)
+```
+
+
+```{r}
+fit <- nls(V.vout. ~ A * exp(-t_rel / tau) + Offset, 
+           data = df, 
+           start = list(A = 1, tau =1, Offset = 0.01))
+
+cat("\n--- PARAMETRI DELLA REGRESSIONE LT Spice ---\n")
+params <- summary(fit)$parameters
+print(params)
+```
+

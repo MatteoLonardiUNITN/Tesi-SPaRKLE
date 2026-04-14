@@ -1,0 +1,17 @@
+LTspice 26.0.1 for Windows
+Circuit: C:\Users\matte\Documents\Tesi\LTspice\voltagemode_exp.net
+Start Time: Thu Mar 12 06:44:32 2026
+solver = Normal
+Maximum thread count: 4
+tnom = 27
+temp = 27
+method = trap
+WARNING: Node x1:n003 is floating.
+
+Direct Newton iteration succeeded in finding operating point.
+Total elapsed time: 0.380 seconds.
+
+Files loaded:
+C:\Users\matte\Documents\Tesi\LTspice\voltagemode_exp.net
+C:\Users\matte\AppData\Local\LTspice\lib\sub\MAX4230.lib
+
